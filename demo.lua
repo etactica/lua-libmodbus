@@ -54,6 +54,11 @@ function lmb_unit_test(dev)
 			r, r, r + 0x130 - 1, r + 0x130 -1, v, v))
 	end
 
+	err = dev:write_bit(0x131, 1);
+	if err then print("write bit returned:", err) end
+	bits, err = dev:read_bits(0x131, 1)
+	if not bits then print("re-reading bits failed", err) end
+	print("rereading bits should be 1 now: ", bits[1])
 
 	bits, err = dev:read_input_bits(0x1c4, 8)
 	if not bits then print("read bits failed", err) end

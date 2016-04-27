@@ -424,6 +424,25 @@ static int ctx_report_slave_id(lua_State *L)
 	return 1;
 }
 
+static int ctx_write_bit(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	int addr = luaL_checknumber(L, 2);
+	int val;
+
+	if (lua_type(L, 3) == LUA_TNUMBER) {
+		val = lua_tonumber(L, 3);
+	} else if (lua_type(L, 3) == LUA_TBOOLEAN) {
+		val = lua_toboolean(L, 3);
+	} else {
+		return luaL_argerror(L, 3, "bit must be numeric or boolean");
+	}
+
+	int rc = modbus_write_bit(ctx->modbus, addr, val);
+
+	return libmodbus_rc_to_nil_error(L, rc, 1);
+}
+
 static int ctx_write_register(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -690,6 +709,7 @@ static const struct luaL_Reg ctx_M[] = {
 	{"set_response_timeout",ctx_set_response_timeout},
 	{"set_slave",		ctx_set_slave},
 	{"set_socket",		ctx_set_socket},
+	{"write_bit",		ctx_write_bit},
 	{"write_bits",		ctx_write_bits},
 	{"write_register",	ctx_write_register},
 	{"write_registers",	ctx_write_registers},
