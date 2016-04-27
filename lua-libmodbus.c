@@ -453,6 +453,7 @@ static int ctx_write_registers(lua_State *L)
 		lua_rawgeti(L, 3, i);
 		/* user beware! we're not range checking your values */
 		if (lua_type(L, -1) != LUA_TNUMBER) {
+			free(buf);
 			return luaL_argerror(L, 3, "table values must be numeric yo");
 		}
 		buf[i-1] = lua_tonumber(L, -1);
