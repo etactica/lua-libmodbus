@@ -101,6 +101,7 @@ static int libmodbus_new_tcp_pi(lua_State *L)
 	ctx->L = L;
 
 	luaL_getmetatable(L, MODBUS_META_CTX);
+	// Can I put more functions in for tcp here? maybe?
 	lua_setmetatable(L, -2);
 
 	return 1;
@@ -246,6 +247,15 @@ static int ctx_set_socket(lua_State *L)
 	return 0;
 }
 
+static int ctx_get_header_length(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+
+	lua_pushinteger(L, modbus_get_header_length(ctx->modbus));
+
+	return 1;
+}
+
 static int ctx_set_slave(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -358,6 +368,88 @@ static int ctx_write_registers(lua_State *L)
 	return rcount;
 }
 
+static int ctx_tcp_pi_listen(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	int conns = luaL_optinteger(L, 2, 1);
+
+	int sock = modbus_tcp_pi_listen(ctx->modbus, conns);
+	if (sock == -1) {
+		return libmodbus_rc_to_nil_error(L, 0, 1);
+	}
+	lua_pushnumber(L, sock);
+
+	return 1;
+}
+
+static int ctx_tcp_pi_accept(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	int sock = luaL_checknumber(L, 2);
+
+	sock = modbus_tcp_pi_accept(ctx->modbus, &sock);
+	if (sock == -1) {
+		return libmodbus_rc_to_nil_error(L, 0, 1);
+	}
+	lua_pushnumber(L, sock);
+
+	return 1;
+}
+
+static int ctx_receive(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	int rcount;
+
+	/*
+	 * FIXME, TCP is longer, so this works, but ideally we 
+	 * should be keeping this in our own ctx object
+	 */
+	uint8_t *req = malloc(MODBUS_TCP_MAX_ADU_LENGTH);
+	int rc = modbus_receive(ctx->modbus, req);
+	if (rc > 0) {
+		lua_pushnumber(L, rc);
+		lua_pushlstring(L, (char *)req, rc);
+		rcount = 2;
+	} else if (rc == 0) {
+		printf("Special case for rc = 0, can't remember\n");
+		rcount = 0;
+	} else {
+		rcount = libmodbus_rc_to_nil_error(L, rc, 0);
+	}
+	return rcount;
+}
+
+static int ctx_reply(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	size_t req_len;
+	const char *req = luaL_checklstring(L, 2, &req_len);
+
+	luaL_checktype(L, 3, LUA_TTABLE);
+
+	// FIXME - oh boy, probably need a whole lot of wrappers on the mappings?
+	//modbus_reply(ctx->modbus, (uint8_t*)req, req_len, mapping);
+	(void)ctx;
+	(void)req;
+	return luaL_error(L, "reply is simply unimplemented my friend!");
+}
+
+static int ctx_reply_exception(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	const char *req = luaL_checklstring(L, 2, NULL);
+	int exception = luaL_checknumber(L, 3);
+
+	int rc = modbus_reply_exception(ctx->modbus, (uint8_t*)req, exception);
+	if (rc == -1) {
+		return libmodbus_rc_to_nil_error(L, 0, 1);
+	} else {
+		return libmodbus_rc_to_nil_error(L, rc, rc);
+	}
+}
+
+
 struct definei {
         const char* name;
         int value;
@@ -376,6 +468,17 @@ static const struct definei D[] = {
 	{"ERROR_RECOVERY_NONE", MODBUS_ERROR_RECOVERY_NONE},
 	{"ERROR_RECOVERY_LINK", MODBUS_ERROR_RECOVERY_LINK},
 	{"ERROR_RECOVERY_PROTOCOL", MODBUS_ERROR_RECOVERY_PROTOCOL},
+	{"EXCEPTION_ILLEGAL_FUNCTION", MODBUS_EXCEPTION_ILLEGAL_FUNCTION},
+	{"EXCEPTION_ILLEGAL_DATA_ADDRESS", MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS},
+	{"EXCEPTION_ILLEGAL_DATA_VALUE", MODBUS_EXCEPTION_ILLEGAL_DATA_VALUE},
+	{"EXCEPTION_SLAVE_OR_SERVER_FAILURE", MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE},
+	{"EXCEPTION_ACKNOWLEDGE", MODBUS_EXCEPTION_ACKNOWLEDGE},
+	{"EXCEPTION_SLAVE_OR_SERVER_BUSY", MODBUS_EXCEPTION_SLAVE_OR_SERVER_BUSY},
+	{"EXCEPTION_NEGATIVE_ACKNOWLEDGE", MODBUS_EXCEPTION_NEGATIVE_ACKNOWLEDGE},
+	{"EXCEPTION_MEMORY_PARITY", MODBUS_EXCEPTION_MEMORY_PARITY},
+	{"EXCEPTION_NOT_DEFINED", MODBUS_EXCEPTION_NOT_DEFINED},
+	{"EXCEPTION_GATEWAY_PATH", MODBUS_EXCEPTION_GATEWAY_PATH},
+	{"EXCEPTION_GATEWAY_TARGET", MODBUS_EXCEPTION_GATEWAY_TARGET},
         {NULL, 0}
 };
 
@@ -412,6 +515,7 @@ static const struct luaL_Reg ctx_M[] = {
 	{"destroy",		ctx_destroy},
 	{"get_socket",		ctx_get_socket},
 	{"get_byte_timeout",	ctx_get_byte_timeout},
+	{"get_header_length",	ctx_get_header_length},
 	{"get_response_timeout",ctx_get_response_timeout},
 	{"read_input_registers",ctx_read_input_registers},
 	{"read_registers",	ctx_read_registers},
@@ -425,6 +529,14 @@ static const struct luaL_Reg ctx_M[] = {
 	{"write_registers",	ctx_write_registers},
 	{"__gc",		ctx_destroy},
 	
+	// FIXME - should really add these funcs only to contexts with tcp_pi!
+	{"tcp_pi_listen",	ctx_tcp_pi_listen},
+	{"tcp_pi_accept",	ctx_tcp_pi_accept},
+
+	{"receive",		ctx_receive},
+	{"reply",		ctx_reply}, /* Totally busted */
+	{"reply_exception",	ctx_reply_exception},
+
 	{NULL, NULL}
 };
 
