@@ -358,15 +358,6 @@ static int ctx_write_registers(lua_State *L)
 	return rcount;
 }
 
-static int ctx_tcp_pi_listen(lua_State *L)
-{
-	ctx_t *ctx = ctx_check(L, 1);
-	int addr = luaL_checknumber(L, 2);
-	int rc;
-	int rcount;
-
-}
-
 struct definei {
         const char* name;
         int value;
