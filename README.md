@@ -16,6 +16,14 @@ style 1 based counting, but converted to zero based internally.  ie:
 	print(res[1]) - prints register address 0x2000, _not_ 0x2001
 ```
 
+Status
+------
+
+* Client bindings for TCP and register operations (no RTU or bit ops)
+* No helpers for integer32/float/signed/bits
+  needs thoughts on what would be nicest to use
+* No Server side (yet)
+
 Compile
 -------
 You need Lua and libmodbus development packages (headers and libs) to
