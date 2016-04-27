@@ -225,10 +225,10 @@ static int ctx_set_byte_timeout(lua_State *L)
 static int ctx_get_byte_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
-	int opt1, opt2;
+	uint32_t opt1, opt2;
 	
 #if LIBMODBUS_VERSION_CHECK(3,1,0)
-	modbus_get_byte_timeout(ctx->modbus, &opt1, opt2);
+	modbus_get_byte_timeout(ctx->modbus, &opt1, &opt2);
 #else
 	struct timeval t;
 	modbus_get_byte_timeout(ctx->modbus, &t);
@@ -260,10 +260,10 @@ static int ctx_set_response_timeout(lua_State *L)
 static int ctx_get_response_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
-	int opt1, opt2;
+	uint32_t opt1, opt2;
 	
 #if LIBMODBUS_VERSION_CHECK(3,1,0)
-	modbus_get_response_timeout(ctx->modbus, &opt1, opt2);
+	modbus_get_response_timeout(ctx->modbus, &opt1, &opt2);
 #else
 	struct timeval t;
 	modbus_get_response_timeout(ctx->modbus, &t);
@@ -415,7 +415,11 @@ static int ctx_report_slave_id(lua_State *L)
 
 	uint8_t *buf = malloc(ctx->max_len);
 	assert(buf);
+#if LIBMODBUS_VERSION_CHECK(3,1,0)
+	int rc = modbus_report_slave_id(ctx->modbus, ctx->max_len, buf);
+#else
 	int rc = modbus_report_slave_id(ctx->modbus, buf);
+#endif
 	if (rc < 0) {
 		return libmodbus_rc_to_nil_error(L, rc, 0);
 	}

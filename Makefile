@@ -18,8 +18,8 @@ CSTD = -std=c11
 
 OPT ?= -Os
 WARN = -Wall -pedantic
-CFLAGS += -g -fPIC $(CSTD) $(WARN) $(OPT) $(LUA_CFLAGS)
-LDFLAGS += -shared $(CSTD) $(LIBS) $(LUA_LDFLAGS)
+CFLAGS += -g -fPIC $(CSTD) $(WARN) $(OPT) $(LUA_CFLAGS) $(EXTRA_CFLAGS)
+LDFLAGS += -shared $(CSTD) $(LIBS) $(LUA_LDFLAGS) $(EXTRA_LDFLAGS)
 
 ifeq ($(OPENWRT_BUILD),1)
 LUA_VERSION=
