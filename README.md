@@ -19,11 +19,12 @@ style 1 based counting, but converted to zero based internally.  ie:
 Status
 ------
 
-* Client bindings for TCP and register operations (no RTU or bit ops)
-* No helpers for integer32/float/signed/bits
+* Client bindings for RTU/TCP and almost all operations.
+* No helpers for integer32/float/signed/bits.
   needs thoughts on what would be nicest to use
-* No Server side (yet)
-* _should_ be compatible with libmodbus 3.1.x, but only tested with 3.0.x so far
+* Server side limited to receive and reply exception.
+  Needs thoughts on how to handle the mapping objects.
+* Compatible with both 3.0.x and 3.1.x but you must run with the version you compiled with.
 
 Compile
 -------
