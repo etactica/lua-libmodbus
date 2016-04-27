@@ -46,6 +46,7 @@
 typedef struct {
 	lua_State *L;
 	modbus_t *modbus;
+	size_t max_len;
 } ctx_t;
 
 /**
@@ -83,6 +84,52 @@ static int libmodbus_version(lua_State *L)
 	return 1;
 }
 
+static int libmodbus_new_rtu(lua_State *L)
+{
+	const char *device = luaL_checkstring(L, 1);
+	int baud = luaL_optnumber(L, 2, 19200);
+	const char *parityin = luaL_optstring(L, 3, "EVEN");
+	int databits = luaL_optnumber(L, 4, 8);
+	int stopbits = luaL_optnumber(L, 5, 1);
+
+	/* just accept baud as is */
+	/* parity must be one of a few things... */
+	char parity;
+	switch (parityin[0]) {
+	case 'e':
+	case 'E':
+		parity = 'E';
+		break;
+	case 'n':
+	case 'N':
+		parity = 'N';
+		break;
+	case 'o':
+	case 'O':
+		parity = 'O';
+		break;
+	default:
+		return luaL_argerror(L, 3, "Unrecognised parity");
+	}
+
+	ctx_t *ctx = (ctx_t *) lua_newuserdata(L, sizeof(ctx_t));
+
+	ctx->modbus = modbus_new_rtu(device, baud, parity, databits, stopbits);
+	ctx->max_len = MODBUS_RTU_MAX_ADU_LENGTH;
+
+	if (ctx->modbus == NULL) {
+		return luaL_error(L, modbus_strerror(errno));
+	}
+
+	ctx->L = L;
+
+	luaL_getmetatable(L, MODBUS_META_CTX);
+	// Can I put more functions in for rtu here? maybe?
+	lua_setmetatable(L, -2);
+
+	return 1;
+}
+
 
 static int libmodbus_new_tcp_pi(lua_State *L)
 {
@@ -93,6 +140,7 @@ static int libmodbus_new_tcp_pi(lua_State *L)
 	ctx_t *ctx = (ctx_t *) lua_newuserdata(L, sizeof(ctx_t));
 
 	ctx->modbus = modbus_new_tcp_pi(host, service);
+	ctx->max_len = MODBUS_TCP_MAX_ADU_LENGTH;
 
 	if (ctx->modbus == NULL) {
 		return luaL_error(L, modbus_strerror(errno));
@@ -365,11 +413,7 @@ static int ctx_report_slave_id(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
 
-	/*
-	 * FIXME, TCP is longer, so this works, but ideally we
-	 * should be keeping this in our own ctx object
-	 */
-	uint8_t *buf = malloc(MODBUS_TCP_MAX_ADU_LENGTH);
+	uint8_t *buf = malloc(ctx->max_len);
 	assert(buf);
 	int rc = modbus_report_slave_id(ctx->modbus, buf);
 	if (rc < 0) {
@@ -523,11 +567,7 @@ static int ctx_receive(lua_State *L)
 	ctx_t *ctx = ctx_check(L, 1);
 	int rcount;
 
-	/*
-	 * FIXME, TCP is longer, so this works, but ideally we 
-	 * should be keeping this in our own ctx object
-	 */
-	uint8_t *req = malloc(MODBUS_TCP_MAX_ADU_LENGTH);
+	uint8_t *req = malloc(ctx->max_len);
 	int rc = modbus_receive(ctx->modbus, req);
 	if (rc > 0) {
 		lua_pushnumber(L, rc);
@@ -625,7 +665,7 @@ static void modbus_register_defs(lua_State *L, const struct definei *D, const st
 
 
 static const struct luaL_Reg R[] = {
-	//{"new_rtu",	libmodbus_new_rtu},
+	{"new_rtu",	libmodbus_new_rtu},
 	{"new_tcp_pi",	libmodbus_new_tcp_pi},
 	{"version",	libmodbus_version},
 	
