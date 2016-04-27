@@ -62,6 +62,9 @@ function lmb_unit_test(dev)
 			r, r, r + 0x1c4 - 1, r + 0x1c4 -1, v, v))
 	end
 
+	report = dev:report_slave_id()
+	print("report slaveid: ", report:byte(1), report:byte(2), report:sub(3))
+
 end
 	
 

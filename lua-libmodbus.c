@@ -361,6 +361,25 @@ static int ctx_read_registers(lua_State *L)
 	return _ctx_read_regs(L, false);
 }
 
+static int ctx_report_slave_id(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+
+	/*
+	 * FIXME, TCP is longer, so this works, but ideally we
+	 * should be keeping this in our own ctx object
+	 */
+	uint8_t *buf = malloc(MODBUS_TCP_MAX_ADU_LENGTH);
+	assert(buf);
+	int rc = modbus_report_slave_id(ctx->modbus, buf);
+	if (rc < 0) {
+		return libmodbus_rc_to_nil_error(L, rc, 0);
+	}
+
+	lua_pushlstring(L, (char *)buf, rc);
+	return 1;
+}
+
 static int ctx_write_register(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -624,6 +643,7 @@ static const struct luaL_Reg ctx_M[] = {
 	{"read_input_bits",	ctx_read_input_bits},
 	{"read_input_registers",ctx_read_input_registers},
 	{"read_registers",	ctx_read_registers},
+	{"report_slave_id",	ctx_report_slave_id},
 	{"set_debug",		ctx_set_debug},
 	{"set_byte_timeout",	ctx_set_byte_timeout},
 	{"set_error_recovery",	ctx_set_error_recovery},
