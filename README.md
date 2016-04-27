@@ -23,6 +23,7 @@ Status
 * No helpers for integer32/float/signed/bits
   needs thoughts on what would be nicest to use
 * No Server side (yet)
+* _should_ be compatible with libmodbus 3.1.x, but only tested with 3.0.x so far
 
 Compile
 -------
