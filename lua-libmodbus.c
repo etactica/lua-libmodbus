@@ -266,6 +266,54 @@ static int ctx_set_slave(lua_State *L)
 	return libmodbus_rc_to_nil_error(L, rc, 0);
 }
 
+static int _ctx_read_bits(lua_State *L, bool input)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	int addr = luaL_checknumber(L, 2);
+	int count = luaL_checknumber(L, 3);
+	int rcount = 0;
+	int rc;
+
+	if (count > MODBUS_MAX_READ_BITS) {
+		return luaL_argerror(L, 3, "requested too many bits");
+	}
+
+	uint8_t *buf = malloc(count * sizeof(uint8_t));
+	assert(buf);
+	if (input) {
+		rc = modbus_read_input_bits(ctx->modbus, addr, count, buf);
+	} else {
+		rc = modbus_read_bits(ctx->modbus, addr, count, buf);
+	}
+
+	if (rc == count) {
+		lua_newtable(L);
+		/* nota bene, lua style offsets! */
+		for (int i = 1; i <= rc; i++) {
+			lua_pushnumber(L, i);
+			/* TODO - push number or push bool? what's a better lua api? */
+			lua_pushnumber(L, buf[i-1]);
+			lua_settable(L, -3);
+		}
+		rcount = 1;
+	} else {
+		rcount = libmodbus_rc_to_nil_error(L, rc, count);
+	}
+
+	free(buf);
+	return rcount;
+}
+
+static int ctx_read_input_bits(lua_State *L)
+{
+	return _ctx_read_bits(L, true);
+}
+
+static int ctx_read_bits(lua_State *L)
+{
+	return _ctx_read_bits(L, false);
+}
+
 static int _ctx_read_regs(lua_State *L, bool input)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -325,6 +373,60 @@ static int ctx_write_register(lua_State *L)
 }
 
 
+static int ctx_write_bits(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	int addr = luaL_checknumber(L, 2);
+	int rc;
+	int rcount;
+
+	/*
+	 * TODO - could allow just a series of arguments too? easier for
+	 * smaller sets?"?)
+	 */
+	luaL_checktype(L, 3, LUA_TTABLE);
+	/* array style table only! */
+	int count = lua_objlen(L, 3);
+
+	if (count > MODBUS_MAX_WRITE_BITS) {
+		return luaL_argerror(L, 3, "requested too many bits");
+	}
+
+	/* Convert table to uint8_t array */
+	uint8_t *buf = malloc(count * sizeof(uint8_t));
+	assert(buf);
+	for (int i = 1; i <= count; i++) {
+		bool ok = false;
+		lua_rawgeti(L, 3, i);
+		if (lua_type(L, -1) == LUA_TNUMBER) {
+			buf[i-1] = lua_tonumber(L, -1);
+			ok = true;
+		}
+		if (lua_type(L, -1) == LUA_TBOOLEAN) {
+			buf[i-1] = lua_toboolean(L, -1);
+			ok = true;
+		}
+
+		if (ok) {
+			lua_pop(L, 1);
+		} else {
+			free(buf);
+			return luaL_argerror(L, 3, "table values must be numeric or bool");
+		}
+	}
+	rc = modbus_write_bits(ctx->modbus, addr, count, buf);
+	if (rc == count) {
+		rcount = 1;
+		lua_pushboolean(L, true);
+	} else {
+		rcount = libmodbus_rc_to_nil_error(L, rc, count);
+	}
+
+	free(buf);
+	return rcount;
+}
+
+
 static int ctx_write_registers(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -334,7 +436,7 @@ static int ctx_write_registers(lua_State *L)
 	
 	/*
 	 * TODO - could allow just a series of arguments too? easier for
-	 * smaller sets? (more compatible with "write_registers"?)
+	 * smaller sets? (more compatible with "write_register"?)
 	 */
 	luaL_checktype(L, 3, LUA_TTABLE);
 	/* array style table only! */
@@ -517,6 +619,8 @@ static const struct luaL_Reg ctx_M[] = {
 	{"get_byte_timeout",	ctx_get_byte_timeout},
 	{"get_header_length",	ctx_get_header_length},
 	{"get_response_timeout",ctx_get_response_timeout},
+	{"read_bits",		ctx_read_bits},
+	{"read_input_bits",	ctx_read_input_bits},
 	{"read_input_registers",ctx_read_input_registers},
 	{"read_registers",	ctx_read_registers},
 	{"set_debug",		ctx_set_debug},
@@ -525,6 +629,7 @@ static const struct luaL_Reg ctx_M[] = {
 	{"set_response_timeout",ctx_set_response_timeout},
 	{"set_slave",		ctx_set_slave},
 	{"set_socket",		ctx_set_socket},
+	{"write_bits",		ctx_write_bits},
 	{"write_register",	ctx_write_register},
 	{"write_registers",	ctx_write_registers},
 	{"__gc",		ctx_destroy},
