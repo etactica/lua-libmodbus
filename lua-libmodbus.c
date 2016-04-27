@@ -57,7 +57,7 @@ typedef struct {
  */
 static int libmodbus_rc_to_nil_error(lua_State *L, int rc, int expected)
 {
-	if (rc == 0) {
+	if (rc == expected) {
 		lua_pushboolean(L, true);
 		return 1;
 	} else {
