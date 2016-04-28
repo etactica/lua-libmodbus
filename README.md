@@ -51,8 +51,9 @@ then writing 5 registers back to that address
 ```Lua
 mb = require("libmodbus")
 local dev = mb.new_tcp_pi("192.168.255.74", 1502)
+local base_address = 0x2000
 dev:connect()
-local regs, err = dev:read_registers(0x2000, 10)
+local regs, err = dev:read_registers(base_address, 10)
 if not regs then error("read failed: " .. err) end
 for r,v in ipairs(regs) do
         print(string.format("register (offset %d) %d: %d (%#x): %#x (%d)",
