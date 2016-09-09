@@ -163,6 +163,7 @@ static ctx_t * ctx_check(lua_State *L, int i)
 static int ctx_destroy(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
+	modbus_close(ctx->modbus);
 	modbus_free(ctx->modbus);
 
 	/* remove all methods operating on ctx */
@@ -180,6 +181,15 @@ static int ctx_connect(lua_State *L)
 	int rc = modbus_connect(ctx->modbus);
 	
 	return libmodbus_rc_to_nil_error(L, rc, 0);
+}
+
+static int ctx_close(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+
+	modbus_close(ctx->modbus);
+
+	return 0;
 }
 
 static int ctx_set_debug(lua_State *L)
@@ -697,6 +707,7 @@ static const struct luaL_Reg R[] = {
 
 static const struct luaL_Reg ctx_M[] = {
 	{"connect",		ctx_connect},
+	{"close",		ctx_close},
 	{"destroy",		ctx_destroy},
 	{"get_socket",		ctx_get_socket},
 	{"get_byte_timeout",	ctx_get_byte_timeout},
