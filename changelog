@@ -1,0 +1,7 @@
+0.3:
+	TBD?
+0.2: 2016-09-09
+Add explicit connection close() method
+
+0.1: Initial release
+Basic overage of libmodbus api
