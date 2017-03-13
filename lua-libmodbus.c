@@ -589,7 +589,7 @@ static int ctx_send_raw_request(lua_State *L)
 		buf[i-1] = lua_tonumber(L, -1);
 		lua_pop(L, 1);
 	};
-	rc = modbus_send_raw_request(ctx->modbus, buf, count/2);
+	rc = modbus_send_raw_request(ctx->modbus, buf, count);
 
 	if (rc < 0) {
 		lua_pushnil(L);
@@ -812,4 +812,3 @@ int luaopen_libmodbus(lua_State *L)
 
 	return 1;
 }
-	
