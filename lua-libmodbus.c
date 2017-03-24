@@ -31,6 +31,7 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #include <lua.h>
 #include <lualib.h>
