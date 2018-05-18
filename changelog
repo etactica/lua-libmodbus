@@ -1,3 +1,6 @@
+0.4:
+Add number helpers for dealing with 16/32bit signed/unsigned
+
 0.3.1: 2017 March
 Support building with musl libc
 

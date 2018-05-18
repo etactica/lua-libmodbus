@@ -156,6 +156,201 @@ static int libmodbus_new_tcp_pi(lua_State *L)
 	return 1;
 }
 
+/** Write a 32bit (u)int to 2x16bit registers
+ * @function set_u32
+ * @param num 32bit number
+ * @return reg1 upper 16bits
+ * @return reg2 lower 16bits
+ */
+static int helper_set_s32(lua_State *L)
+{
+	/* truncate as necessary */
+	const uint32_t toval = (uint32_t)luaL_checknumber(L, 1);
+	lua_pushinteger(L, toval >> 16);
+	lua_pushinteger(L, toval & 0xffff);
+	return 2;
+}
+
+/** Write a bit float to 2x16bit registers
+ * @function set_f32
+ * @param num floating point number
+ * @return reg1 upper 16bits of a 32bit float
+ * @return reg2 lower 16bits of a 32bit float
+ */
+static int helper_set_f32(lua_State *L)
+{
+	/* truncate to float if necessary */
+	const float in = (float)luaL_checknumber(L, 1);
+	uint32_t out;
+	memcpy(&out, &in, sizeof(out));
+	lua_pushinteger(L, out >> 16);
+	lua_pushinteger(L, out & 0xffff);
+	return 2;
+}
+
+
+/**
+ * 16bit register as number to signed 16bit
+ * @function get_s16
+ * @param 1 16bit register
+ * @return signed 16bit number
+ */
+static int helper_get_s16(lua_State *L)
+{
+	const uint16_t in = luaL_checknumber(L, 1);
+	lua_pushinteger(L, (int16_t)(in));
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to signed 32 bit
+ * @function get_s32
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */
+static int helper_get_s32(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+	int32_t out = in1 << 16 | in2;
+	lua_pushinteger(L, out);
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to signed 32 bit (reverse order)
+ * @function get_s32le
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */
+static int helper_get_s32le(lua_State *L)
+{
+	const uint16_t in2 = luaL_checknumber(L, 1);
+	const uint16_t in1 = luaL_checknumber(L, 2);
+	int32_t out = in1 << 16 | in2;
+	lua_pushinteger(L, out);
+	return 1;
+}
+
+
+/**
+ * 2x16bit registers as number to unsigned 32 bit
+ * @function get_u32
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */
+static int helper_get_u32(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+	uint32_t out = in1 << 16 | in2;
+	lua_pushinteger(L, out);
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to unsigned 32 bit (reversed order)
+ * @function get_u32le
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */
+static int helper_get_u32le(lua_State *L)
+{
+	const uint16_t in2 = luaL_checknumber(L, 1);
+	const uint16_t in1 = luaL_checknumber(L, 2);
+	uint32_t out = in1 << 16 | in2;
+	lua_pushinteger(L, out);
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to 32 bit float
+ * @function get_f32
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit float
+ */
+static int helper_get_f32(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+
+	uint32_t inval = in1<<16 | in2;
+	float f;
+	memcpy(&f, &inval, sizeof(f));
+
+	lua_pushnumber(L, f);
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to 32 bit float (Reversed order)
+ * @function get_f32le
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit float
+ */
+static int helper_get_f32le(lua_State *L)
+{
+	const uint16_t in2 = luaL_checknumber(L, 1);
+	const uint16_t in1 = luaL_checknumber(L, 2);
+
+	uint32_t inval = in1<<16 | in2;
+	float f;
+	memcpy(&f, &inval, sizeof(f));
+
+	lua_pushnumber(L, f);
+	return 1;
+}
+
+/**
+ * 4x16bit registers as number to signed 64 bit
+ * @function get_s64
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @param 3 16bit register
+ * @param 4 16bit register
+ * @return 64bit number
+ */
+static int helper_get_s64(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+	const uint16_t in3 = luaL_checknumber(L, 3);
+	const uint16_t in4 = luaL_checknumber(L, 4);
+	int64_t out = in1;
+	out = out << 16 | in2;
+	out = out << 16 | in3;
+	out = out << 16 | in4;
+	lua_pushnumber(L, out);
+	return 1;
+}
+
+/**
+ * 4x16bit registers as number to unsigned 64 bit
+ * @function get_u64
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @param 3 16bit register
+ * @param 4 16bit register
+ * @return 64bit number
+ */
+static int helper_get_u64(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+	const uint16_t in3 = luaL_checknumber(L, 3);
+	const uint16_t in4 = luaL_checknumber(L, 4);
+	uint64_t out = (uint64_t)in1 << 48 | (uint64_t)in2 << 32 | (uint64_t)in3 << 16 | in4;
+	lua_pushnumber(L, out);
+	return 1;
+}
+
+
 static ctx_t * ctx_check(lua_State *L, int i)
 {
 	return (ctx_t *) luaL_checkudata(L, i, MODBUS_META_CTX);
@@ -751,6 +946,20 @@ static const struct luaL_Reg R[] = {
 	{"new_rtu",	libmodbus_new_rtu},
 	{"new_tcp_pi",	libmodbus_new_tcp_pi},
 	{"version",	libmodbus_version},
+
+	{"set_s32",	helper_set_s32},
+	{"set_f32",	helper_set_f32},
+
+	{"get_s16",	helper_get_s16},
+	{"get_s32",	helper_get_s32},
+	{"get_s32le",	helper_get_s32le},
+	{"get_u32",	helper_get_u32},
+	{"get_u32le",	helper_get_u32le},
+	{"get_f32",	helper_get_f32},
+	{"get_f32le",	helper_get_f32le},
+	{"get_s64",	helper_get_s64},
+	{"get_u64",	helper_get_u64},
+	/* {"get_u16",	helper_get_u16}, Not normally useful, just use the number as it was returned */
 	
 	{NULL, NULL}
 };
