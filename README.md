@@ -74,3 +74,12 @@ local res, err = dev:write_registers(0x2000, { 0xabcd, 32.98, 0xfffe, 0xabcd, -1
 if not res then print(err) end
 ```
 
+
+Testing
+-------
+Some spec files for use with busted are provided.  Some of them expect to have
+real hardware to talk to, so you may wish to disable them.
+
+```
+busted --exclude-tags=real
+```
