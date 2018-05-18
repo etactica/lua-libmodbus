@@ -25,6 +25,8 @@
 
 */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +50,14 @@ typedef struct {
 	lua_State *L;
 	modbus_t *modbus;
 	size_t max_len;
+
+	/* only used for making tostring */
+	char *dev_host;
+	char *service;
+	int baud;
+	char parity;
+	int databits;
+	int stopbits;
 } ctx_t;
 
 /**
@@ -124,6 +134,13 @@ static int libmodbus_new_rtu(lua_State *L)
 
 	ctx->L = L;
 
+	/* save data for nice string representations */
+	ctx->baud = baud;
+	ctx->databits = databits;
+	ctx->dev_host = strdup(device);
+	ctx->parity = parity;
+	ctx->stopbits = stopbits;
+
 	luaL_getmetatable(L, MODBUS_META_CTX);
 	// Can I put more functions in for rtu here? maybe?
 	lua_setmetatable(L, -2);
@@ -148,6 +165,11 @@ static int libmodbus_new_tcp_pi(lua_State *L)
 	}
 
 	ctx->L = L;
+
+	/* save data for nice string representations */
+	ctx->dev_host = strdup(host);
+	ctx->service = strdup(service);
+	ctx->databits = 0;
 
 	luaL_getmetatable(L, MODBUS_META_CTX);
 	// Can I put more functions in for tcp here? maybe?
@@ -361,6 +383,12 @@ static int ctx_destroy(lua_State *L)
 	ctx_t *ctx = ctx_check(L, 1);
 	modbus_close(ctx->modbus);
 	modbus_free(ctx->modbus);
+	if (ctx->dev_host) {
+		free(ctx->dev_host);
+	}
+	if (ctx->service) {
+		free(ctx->service);
+	}
 
 	/* remove all methods operating on ctx */
 	lua_newtable(L);
@@ -368,6 +396,18 @@ static int ctx_destroy(lua_State *L)
 
 	/* Nothing to return on stack */
 	return 0;
+}
+
+static int ctx_tostring(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+
+	if (ctx->databits) {
+		lua_pushfstring(L, "ModbusRTU<%s@%d/%c%d>", ctx->dev_host, ctx->databits, ctx->parity, ctx->stopbits);
+	} else {
+		lua_pushfstring(L, "ModbusTCP<%s@%s>", ctx->dev_host, ctx->service);
+	}
+	return 1;
 }
 
 static int ctx_connect(lua_State *L)
@@ -989,6 +1029,7 @@ static const struct luaL_Reg ctx_M[] = {
 	{"write_registers",	ctx_write_registers},
 	{"send_raw_request",	ctx_send_raw_request},
 	{"__gc",		ctx_destroy},
+	{"__tostring",		ctx_tostring},
 	
 	// FIXME - should really add these funcs only to contexts with tcp_pi!
 	{"tcp_pi_listen",	ctx_tcp_pi_listen},
