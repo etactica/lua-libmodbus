@@ -1,5 +1,9 @@
-0.3:
-	TBD?
+0.3.1: 2017 March
+Support building with musl libc
+
+0.3: 2017 March
+Add support for send_raw_request
+
 0.2: 2016-09-09
 Add explicit connection close() method
 
