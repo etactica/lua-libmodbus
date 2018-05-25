@@ -1,8 +1,7 @@
-/*
+/*** lua bindings to libmodbus
 
-  lua-libmodbus.c - Lua bindings to libmodbus
-
-  Copyright (c) 2016 Karl Palsson <karlp@remake.is>
+@module libmodbus
+@author Karl Palsson <karlp@remake.is> 2016
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -60,8 +59,8 @@ typedef struct {
 	int stopbits;
 } ctx_t;
 
-/**
- * Push either "true" or "nil, errormessage"
+/*
+ * Pushes either "true" or "nil, errormessage"
  * @param L
  * @param rc rc from modbus_xxxx function call
  * @param expected what rc was meant to be
@@ -82,7 +81,7 @@ static int libmodbus_rc_to_nil_error(lua_State *L, int rc, int expected)
 
 /**
  * Returns the runtime linked version of libmodbus as a string
- * @param L
+ * @function version
  * @return eg "3.0.6"
  */
 static int libmodbus_version(lua_State *L)
@@ -95,6 +94,16 @@ static int libmodbus_version(lua_State *L)
 	return 1;
 }
 
+/**
+ * Create a Modbus/RTU context
+ * @function new_rtu
+ * @param device (required)
+ * @param baud rate, defaults to 19200
+ * @param parity defaults to EVEN
+ * @param databits defaults to 8
+ * @param stopbits defaults to 1
+ * @return a modbus context ready for use
+ */
 static int libmodbus_new_rtu(lua_State *L)
 {
 	const char *device = luaL_checkstring(L, 1);
@@ -149,6 +158,13 @@ static int libmodbus_new_rtu(lua_State *L)
 }
 
 
+/**
+ * Create a Modbus/TCP context
+ * @function new_tcp_pi
+ * @param host eg "192.168.1.100" or "modbus.example.org"
+ * @param service eg "502" or "mbap"
+ * @return a modbus context ready for use
+ */
 static int libmodbus_new_tcp_pi(lua_State *L)
 {
 	const char *host = luaL_checkstring(L, 1);
@@ -410,6 +426,15 @@ static int ctx_tostring(lua_State *L)
 	return 1;
 }
 
+/** Context Methods.
+ * These functions are members of a modbus context, from either new_rtu() or new_tcp_pi()
+ * @section context_methods
+ */
+
+/**
+ * Connect, see modbus_connect()
+ * @function ctx:connect
+ */
 static int ctx_connect(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -419,6 +444,10 @@ static int ctx_connect(lua_State *L)
 	return libmodbus_rc_to_nil_error(L, rc, 0);
 }
 
+/**
+ * Close, see modbus_close()
+ * @function ctx:close
+ */
 static int ctx_close(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -428,6 +457,11 @@ static int ctx_close(lua_State *L)
 	return 0;
 }
 
+/**
+ * Set debug
+ * @function ctx:set_debug
+ * @param enable optional bool, defaults to true
+ */
 static int ctx_set_debug(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -441,6 +475,14 @@ static int ctx_set_debug(lua_State *L)
 	return 0;
 }
 
+/**
+ * Set error recovery, see modbus_set_error_recovery
+ * FIXME get autodocs for the defined constants
+ * arguments will be or'd together
+ * @function ctx:set_error_recovery
+ * @param a either ERROR_RECOVERY_NONE or ERROR_RECOVERY_LINK or ERROR_RECOVERY_PROTOCOL
+ * @param b as a
+ */
 static int ctx_set_error_recovery(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -452,6 +494,12 @@ static int ctx_set_error_recovery(lua_State *L)
 	return libmodbus_rc_to_nil_error(L, rc, 0);
 }
 
+/**
+ * See also modbus_set_byte_timeout
+ * @function ctx:set_byte_timeout
+ * @param seconds (required)
+ * @param microseconds (optional, defaults to 0)
+ */
 static int ctx_set_byte_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -468,6 +516,11 @@ static int ctx_set_byte_timeout(lua_State *L)
 	return 0;
 }
 
+/**
+ * @function ctx:get_byte_timeout
+ * @return[1] seconds
+ * @return[1] microseconds
+ */
 static int ctx_get_byte_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -487,6 +540,11 @@ static int ctx_get_byte_timeout(lua_State *L)
 	return 2;
 }
 
+/**
+ * @function ctx:set_response_timeout
+ * @param seconds (required)
+ * @param microseconds (optional, defaults to 0)
+ */
 static int ctx_set_response_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -503,6 +561,11 @@ static int ctx_set_response_timeout(lua_State *L)
 	return 0;
 }
 
+/**
+ * @function ctx:get_response_timeout
+ * @return[1] seconds
+ * @return[1] microseconds
+ */
 static int ctx_get_response_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
