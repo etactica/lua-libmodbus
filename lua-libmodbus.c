@@ -585,6 +585,10 @@ static int ctx_get_response_timeout(lua_State *L)
 	return 2;
 }
 
+/**
+ * @function ctx:get_socket
+ * @return the socket number
+ */
 static int ctx_get_socket(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -594,6 +598,10 @@ static int ctx_get_socket(lua_State *L)
 	return 1;
 }
 
+/**
+ * @function ctx:set_socket
+ * @param sock integer socket number to set
+ */
 static int ctx_set_socket(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -613,6 +621,10 @@ static int ctx_get_header_length(lua_State *L)
 	return 1;
 }
 
+/**
+ * @function ctx:set_slave
+ * @param unitid the unit address / slave id to use
+ */
 static int ctx_set_slave(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -661,11 +673,23 @@ static int _ctx_read_bits(lua_State *L, bool input)
 	return rcount;
 }
 
+/**
+ * @function ctx:read_input_bits
+ * @param address
+ * @param count
+ * @return an array of results
+ */
 static int ctx_read_input_bits(lua_State *L)
 {
 	return _ctx_read_bits(L, true);
 }
 
+/**
+ * @function ctx:read_bits
+ * @param address
+ * @param count
+ * @return an array of results
+ */
 static int ctx_read_bits(lua_State *L)
 {
 	return _ctx_read_bits(L, false);
@@ -708,16 +732,32 @@ static int _ctx_read_regs(lua_State *L, bool input)
 	return rcount;
 }
 
+/**
+ * @function ctx:read_input_registers
+ * @param address
+ * @param count
+ * @return an array of results
+ */
 static int ctx_read_input_registers(lua_State *L)
 {
 	return _ctx_read_regs(L, true);
 }
 
+/**
+ * @function ctx:read_registers
+ * @param address
+ * @param count
+ * @return an array of results
+ */
 static int ctx_read_registers(lua_State *L)
 {
 	return _ctx_read_regs(L, false);
 }
 
+/**
+ * @function ctx:report_slave_id
+ * @return a luastring with the raw result (lua strings can contain nulls)
+ */
 static int ctx_report_slave_id(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -737,6 +777,11 @@ static int ctx_report_slave_id(lua_State *L)
 	return 1;
 }
 
+/**
+ * @function ctx:write_bit
+ * @param address
+ * @param value either a number or a boolean
+ */
 static int ctx_write_bit(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -756,6 +801,11 @@ static int ctx_write_bit(lua_State *L)
 	return libmodbus_rc_to_nil_error(L, rc, 1);
 }
 
+/**
+ * @function ctx:write_register
+ * @param address
+ * @param value
+ */
 static int ctx_write_register(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -768,6 +818,11 @@ static int ctx_write_register(lua_State *L)
 }
 
 
+/**
+ * @function ctx:write_bits
+ * @param address
+ * @param value as a lua array table
+ */
 static int ctx_write_bits(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -822,6 +877,11 @@ static int ctx_write_bits(lua_State *L)
 }
 
 
+/**
+ * @function ctx:write_registers
+ * @param address
+ * @param value as a lua array table
+ */
 static int ctx_write_registers(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
