@@ -235,8 +235,8 @@ static int helper_set_f32(lua_State *L)
  */
 static int helper_get_s16(lua_State *L)
 {
-	const uint16_t in = luaL_checknumber(L, 1);
-	lua_pushinteger(L, (int16_t)(in));
+	const int16_t in = luaL_checknumber(L, 1);
+	lua_pushinteger(L, in);
 	return 1;
 }
 
