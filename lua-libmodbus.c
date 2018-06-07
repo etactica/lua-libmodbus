@@ -911,7 +911,9 @@ static int ctx_write_registers(lua_State *L)
 			free(buf);
 			return luaL_argerror(L, 3, "table values must be numeric yo");
 		}
-		buf[i-1] = lua_tonumber(L, -1);
+		/* This preserves sign and fractions better than tointeger() */
+		lua_Number n = lua_tonumber(L, -1);
+		buf[i-1] = (int16_t)n;
 		lua_pop(L, 1);
 	}
 	rc = modbus_write_registers(ctx->modbus, addr, count, buf);
