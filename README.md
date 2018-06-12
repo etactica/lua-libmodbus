@@ -16,6 +16,8 @@ style 1 based counting, but converted to zero based internally.  ie:
 	print(res[1]) - prints register address 0x2000, _not_ 0x2001
 ```
 
+[API documentation](http://remakeelectric.github.io/lua-libmodbus/) (Generated from last release)
+
 Status
 ------
 
