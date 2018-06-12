@@ -880,7 +880,10 @@ static int ctx_write_bits(lua_State *L)
 /**
  * @function ctx:write_registers
  * @param address
- * @param value as a lua array table
+ * @param value as a lua array table, or a sequence of values.
+ * @usage either
+ *  ctx:write_registers(0x2000, {1,2,3})
+ *  ctx:write_registers(0x2000, 1, 2, 3)
  */
 static int ctx_write_registers(lua_State *L)
 {
@@ -888,33 +891,45 @@ static int ctx_write_registers(lua_State *L)
 	int addr = luaL_checknumber(L, 2);
 	int rc;
 	int rcount;
-	
-	/*
-	 * TODO - could allow just a series of arguments too? easier for
-	 * smaller sets? (more compatible with "write_register"?)
-	 */
-	luaL_checktype(L, 3, LUA_TTABLE);
-	/* array style table only! */
-	int count = lua_objlen(L, 3);
+	uint16_t *buf;
+	int count;
 
-	if (count > MODBUS_MAX_WRITE_REGISTERS) {
-		return luaL_argerror(L, 3, "requested too many registers");
-	}
+	if (lua_type(L, 3) == LUA_TTABLE) {
+		/* array style table only! */
+		count = lua_objlen(L, 3);
 
-	/* Convert table to uint16_t array */
-	uint16_t *buf = malloc(count * sizeof(uint16_t));
-	assert(buf);
-	for (int i = 1; i <= count; i++) {
-		lua_rawgeti(L, 3, i);
-		/* user beware! we're not range checking your values */
-		if (lua_type(L, -1) != LUA_TNUMBER) {
-			free(buf);
-			return luaL_argerror(L, 3, "table values must be numeric yo");
+		if (count > MODBUS_MAX_WRITE_REGISTERS) {
+			return luaL_argerror(L, 3, "requested too many registers");
 		}
-		/* This preserves sign and fractions better than tointeger() */
-		lua_Number n = lua_tonumber(L, -1);
-		buf[i-1] = (int16_t)n;
-		lua_pop(L, 1);
+
+		/* Convert table to uint16_t array */
+		buf = malloc(count * sizeof(uint16_t));
+		assert(buf);
+		for (int i = 1; i <= count; i++) {
+			lua_rawgeti(L, 3, i);
+			/* user beware! we're not range checking your values */
+			if (lua_type(L, -1) != LUA_TNUMBER) {
+				free(buf);
+				return luaL_argerror(L, 3, "table values must be numeric yo");
+			}
+			/* This preserves sign and fractions better than tointeger() */
+			lua_Number n = lua_tonumber(L, -1);
+			buf[i-1] = (int16_t)n;
+			lua_pop(L, 1);
+		}
+	} else {
+		/* Assume sequence of values then... */
+		int total_args = lua_gettop(L);
+		if (total_args < 3) {
+			return luaL_argerror(L, 3, "No values provided to write!");
+		}
+		count = total_args - 2;
+		buf = malloc(count * sizeof(uint16_t));
+		assert(buf);
+		for (int i = 0; i < count; i++) {
+			buf[i] = (int16_t)lua_tonumber(L, i + 3);
+			printf("write reg %i = %d(%#x)\n", i, buf[i], buf[i]);
+		}
 	}
 	rc = modbus_write_registers(ctx->modbus, addr, count, buf);
 	if (rc == count) {
