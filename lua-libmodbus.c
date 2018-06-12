@@ -285,7 +285,7 @@ static int helper_get_u32(lua_State *L)
 	const uint16_t in1 = luaL_checknumber(L, 1);
 	const uint16_t in2 = luaL_checknumber(L, 2);
 	uint32_t out = in1 << 16 | in2;
-	lua_pushinteger(L, out);
+	lua_pushnumber(L, out);
 	return 1;
 }
 
@@ -301,7 +301,7 @@ static int helper_get_u32le(lua_State *L)
 	const uint16_t in2 = luaL_checknumber(L, 1);
 	const uint16_t in1 = luaL_checknumber(L, 2);
 	uint32_t out = in1 << 16 | in2;
-	lua_pushinteger(L, out);
+	lua_pushnumber(L, out);
 	return 1;
 }
 
