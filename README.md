@@ -22,8 +22,8 @@ Status
 ------
 
 * Client bindings for RTU/TCP and almost all operations.
-* No helpers for integer32/float/signed/bits.
-  needs thoughts on what would be nicest to use
+* Some helpers for working with 16/32bit signed/unsigned and floats in multiple registers
+  (API is not necessarily nailed down, comments welcome)
 * Server side limited to receive and reply exception.
   Needs thoughts on how to handle the mapping objects.
 * Compatible with both 3.0.x and 3.1.x but you must run with the version you compiled with.
