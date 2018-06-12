@@ -41,4 +41,4 @@ clean:
 	$(RM) $(CMOD) $(OBJS)
 
 test:
-	busted
+	busted --exclude-tags real
