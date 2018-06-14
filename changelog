@@ -1,6 +1,11 @@
-0.4:
+0.4.1: 2018 June
+Drop unintended debug
+Fix documentation
+
+0.4: 2018 June
 Add number helpers for dealing with 16/32bit signed/unsigned
 Add tostring() functionality
+Add documentation
 
 0.3.1: 2017 March
 Support building with musl libc
