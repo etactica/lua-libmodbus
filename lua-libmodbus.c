@@ -928,7 +928,6 @@ static int ctx_write_registers(lua_State *L)
 		assert(buf);
 		for (int i = 0; i < count; i++) {
 			buf[i] = (int16_t)lua_tonumber(L, i + 3);
-			printf("write reg %i = %d(%#x)\n", i, buf[i], buf[i]);
 		}
 	}
 	rc = modbus_write_registers(ctx->modbus, addr, count, buf);
