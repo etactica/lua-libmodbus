@@ -195,7 +195,7 @@ static int libmodbus_new_tcp_pi(lua_State *L)
 }
 
 /** Write a 32bit (u)int to 2x16bit registers
- * @function set_u32
+ * @function set_s32
  * @param num 32bit number
  * @return reg1 upper 16bits
  * @return reg2 lower 16bits
