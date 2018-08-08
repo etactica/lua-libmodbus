@@ -150,6 +150,9 @@ static int libmodbus_new_rtu(lua_State *L)
 	ctx->parity = parity;
 	ctx->stopbits = stopbits;
 
+	/* Make sure unused fields are zeroed */
+	ctx->service = NULL;
+
 	luaL_getmetatable(L, MODBUS_META_CTX);
 	// Can I put more functions in for rtu here? maybe?
 	lua_setmetatable(L, -2);
