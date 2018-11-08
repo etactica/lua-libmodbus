@@ -839,7 +839,7 @@ static int ctx_write_bits(lua_State *L)
 	 */
 	luaL_checktype(L, 3, LUA_TTABLE);
 	/* array style table only! */
-	int count = lua_objlen(L, 3);
+	int count = lua_rawlen(L, 3);
 
 	if (count > MODBUS_MAX_WRITE_BITS) {
 		return luaL_argerror(L, 3, "requested too many bits");
@@ -899,7 +899,7 @@ static int ctx_write_registers(lua_State *L)
 
 	if (lua_type(L, 3) == LUA_TTABLE) {
 		/* array style table only! */
-		count = lua_objlen(L, 3);
+		count = lua_rawlen(L, 3);
 
 		if (count > MODBUS_MAX_WRITE_REGISTERS) {
 			return luaL_argerror(L, 3, "requested too many registers");
@@ -950,12 +950,12 @@ static int ctx_send_raw_request(lua_State *L)
 	ctx_t *ctx = ctx_check(L, 1);
 	int rc;
 	int rcount;
-	int count = lua_objlen(L, 2);
+	int count = lua_rawlen(L, 2);
 	luaL_checktype(L, 2, LUA_TTABLE);
 	/* array style table only! */
 
 	/* Convert table to uint8_t array */
-	uint8_t *buf = malloc(lua_objlen(L, 2) * sizeof(uint8_t));
+	uint8_t *buf = malloc(lua_rawlen(L, 2) * sizeof(uint8_t));
 	assert(buf);
 	for (int i = 1; i <= count; i++) {
 		lua_rawgeti(L, 2, i);
