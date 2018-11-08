@@ -16,12 +16,14 @@ style 1 based counting, but converted to zero based internally.  ie:
 	print(res[1]) - prints register address 0x2000, _not_ 0x2001
 ```
 
+[API documentation](http://remakeelectric.github.io/lua-libmodbus/) (Generated from last release)
+
 Status
 ------
 
 * Client bindings for RTU/TCP and almost all operations.
-* No helpers for integer32/float/signed/bits.
-  needs thoughts on what would be nicest to use
+* Some helpers for working with 16/32bit signed/unsigned and floats in multiple registers
+  (API is not necessarily nailed down, comments welcome)
 * Server side limited to receive and reply exception.
   Needs thoughts on how to handle the mapping objects.
 * Compatible with both 3.0.x and 3.1.x but you must run with the version you compiled with.
@@ -74,3 +76,12 @@ local res, err = dev:write_registers(0x2000, { 0xabcd, 32.98, 0xfffe, 0xabcd, -1
 if not res then print(err) end
 ```
 
+
+Testing
+-------
+Some spec files for use with busted are provided.  Some of them expect to have
+real hardware to talk to, so you may wish to disable them.
+
+```
+busted --exclude-tags=real
+```

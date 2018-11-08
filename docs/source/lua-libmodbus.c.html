@@ -1,0 +1,1261 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>lua-libmodbus</h1>
+
+
+
+
+<h2>Source</h2>
+<ul class="nowrap">
+  <li><strong>lua-libmodbus.c</strong></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../index.html">libmodbus</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+    <h2>lua-libmodbus.c</h2>
+<pre>
+<span class="comment">/*** lua bindings to libmodbus
+
+@module libmodbus
+@author Karl Palsson &lt;karlp@remake.is&gt; 2016
+
+  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+*/</span>
+
+#define _POSIX_C_SOURCE 200809L
+
+#include &lt;stdbool.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;assert.h&gt;
+#include &lt;sys/time.h&gt;
+
+#include &lt;lua.h&gt;
+#include &lt;lualib.h&gt;
+#include &lt;lauxlib.h&gt;
+
+#include &lt;modbus/modbus.h&gt;
+
+#include "compat.h"
+
+<span class="comment">/* unique naming for userdata metatables */</span>
+#define MODBUS_META_CTX	"modbus.ctx"
+
+<span class="keyword">typedef</span> <span class="keyword">struct</span> {
+	lua_State *L;
+	modbus_t *modbus;
+	size_t max_len;
+
+	<span class="comment">/* only used for making tostring */</span>
+	<span class="keyword">char</span> *dev_host;
+	<span class="keyword">char</span> *service;
+	<span class="keyword">int</span> baud;
+	<span class="keyword">char</span> parity;
+	<span class="keyword">int</span> databits;
+	<span class="keyword">int</span> stopbits;
+} ctx_t;
+
+<span class="comment">/*
+ * Pushes either "true" or "nil, errormessage"
+ * @param L
+ * @param rc rc from modbus_xxxx function call
+ * @param expected what rc was meant to be
+ * @return the count of stack elements pushed
+ */</span>
+<span class="keyword">static</span> <span class="keyword">int</span> libmodbus_rc_to_nil_error(lua_State *L, <span class="keyword">int</span> rc, <span class="keyword">int</span> expected)
+{
+	<span class="keyword">if</span> (rc == expected) {
+		lua_pushboolean(L, <span class="keyword">true</span>);
+		<span class="keyword">return</span> <span class="number">1</span>;
+	} <span class="keyword">else</span> {
+		lua_pushnil(L);
+		<span class="comment">// TODO - insert the integer errno code here too?
+</span>		lua_pushstring(L, modbus_strerror(errno));
+		<span class="keyword">return</span> <span class="number">2</span>;
+	}
+}
+
+<span class="comment">/**
+ * Returns the runtime linked version of libmodbus as a string
+ * @function version
+ * @return eg "3.0.6"
+ */</span><a id="73"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> libmodbus_version(lua_State *L)
+{
+	<span class="keyword">char</span> version[<span class="number">16</span>];
+
+	snprintf(version, <span class="keyword">sizeof</span>(version) - <span class="number">1</span>, <span class="string">"%i.%i.%i"</span>,
+		libmodbus_version_major, libmodbus_version_minor, libmodbus_version_micro);
+	lua_pushstring(L, version);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * Create a Modbus/RTU context
+ * @function new_rtu
+ * @param device (required)
+ * @param baud rate, defaults to 19200
+ * @param parity defaults to EVEN
+ * @param databits defaults to 8
+ * @param stopbits defaults to 1
+ * @return a modbus context ready for use
+ */</span><a id="93"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> libmodbus_new_rtu(lua_State *L)
+{
+	<span class="keyword">const</span> <span class="keyword">char</span> *device = luaL_checkstring(L, <span class="number">1</span>);
+	<span class="keyword">int</span> baud = luaL_optnumber(L, <span class="number">2</span>, <span class="number">19200</span>);
+	<span class="keyword">const</span> <span class="keyword">char</span> *parityin = luaL_optstring(L, <span class="number">3</span>, <span class="string">"EVEN"</span>);
+	<span class="keyword">int</span> databits = luaL_optnumber(L, <span class="number">4</span>, <span class="number">8</span>);
+	<span class="keyword">int</span> stopbits = luaL_optnumber(L, <span class="number">5</span>, <span class="number">1</span>);
+
+	<span class="comment">/* just accept baud as is */</span>
+	<span class="comment">/* parity must be one of a few things... */</span>
+	<span class="keyword">char</span> parity;
+	<span class="keyword">switch</span> (parityin[<span class="number">0</span>]) {
+	<span class="keyword">case</span> 'e':
+	<span class="keyword">case</span> 'E':
+		parity = 'E';
+		<span class="keyword">break</span>;
+	<span class="keyword">case</span> 'n':
+	<span class="keyword">case</span> 'N':
+		parity = 'N';
+		<span class="keyword">break</span>;
+	<span class="keyword">case</span> 'o':
+	<span class="keyword">case</span> 'O':
+		parity = 'O';
+		<span class="keyword">break</span>;
+	<span class="keyword">default</span>:
+		<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"Unrecognised parity"</span>);
+	}
+
+	ctx_t *ctx = (ctx_t *) lua_newuserdata(L, <span class="keyword">sizeof</span>(ctx_t));
+
+	ctx-&gt;modbus = modbus_new_rtu(device, baud, parity, databits, stopbits);
+	ctx-&gt;max_len = MODBUS_RTU_MAX_ADU_LENGTH;
+
+	<span class="keyword">if</span> (ctx-&gt;modbus == NULL) {
+		<span class="keyword">return</span> luaL_error(L, modbus_strerror(errno));
+	}
+
+	ctx-&gt;L = L;
+
+	<span class="comment">/* save data for nice string representations */</span>
+	ctx-&gt;baud = baud;
+	ctx-&gt;databits = databits;
+	ctx-&gt;dev_host = strdup(device);
+	ctx-&gt;parity = parity;
+	ctx-&gt;stopbits = stopbits;
+
+	luaL_getmetatable(L, MODBUS_META_CTX);
+	<span class="comment">// Can I put more functions in for rtu here? maybe?
+</span>	lua_setmetatable(L, -<span class="number">2</span>);
+
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+
+<span class="comment">/**
+ * Create a Modbus/TCP context
+ * @function new_tcp_pi
+ * @param host eg "192.168.1.100" or "modbus.example.org"
+ * @param service eg "502" or "mbap"
+ * @return a modbus context ready for use
+ */</span><a id="154"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> libmodbus_new_tcp_pi(lua_State *L)
+{
+	<span class="keyword">const</span> <span class="keyword">char</span> *host = luaL_checkstring(L, <span class="number">1</span>);
+	<span class="keyword">const</span> <span class="keyword">char</span> *service = luaL_checkstring(L, <span class="number">2</span>);
+
+	<span class="comment">// Do we really need any of this? no callbacks in libmodbus?
+</span>	ctx_t *ctx = (ctx_t *) lua_newuserdata(L, <span class="keyword">sizeof</span>(ctx_t));
+
+	ctx-&gt;modbus = modbus_new_tcp_pi(host, service);
+	ctx-&gt;max_len = MODBUS_TCP_MAX_ADU_LENGTH;
+
+	<span class="keyword">if</span> (ctx-&gt;modbus == NULL) {
+		<span class="keyword">return</span> luaL_error(L, modbus_strerror(errno));
+	}
+
+	ctx-&gt;L = L;
+
+	<span class="comment">/* save data for nice string representations */</span>
+	ctx-&gt;dev_host = strdup(host);
+	ctx-&gt;service = strdup(service);
+	ctx-&gt;databits = <span class="number">0</span>;
+
+	luaL_getmetatable(L, MODBUS_META_CTX);
+	<span class="comment">// Can I put more functions in for tcp here? maybe?
+</span>	lua_setmetatable(L, -<span class="number">2</span>);
+
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/** Write a 32bit (u)int to 2x16bit registers
+ * @function set_s32
+ * @param num 32bit number
+ * @return reg1 upper 16bits
+ * @return reg2 lower 16bits
+ */</span><a id="189"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_set_s32(lua_State *L)
+{
+	<span class="comment">/* truncate as necessary */</span>
+	<span class="keyword">const</span> uint32_t toval = (uint32_t)luaL_checknumber(L, <span class="number">1</span>);
+	lua_pushinteger(L, toval &gt;&gt; <span class="number">16</span>);
+	lua_pushinteger(L, toval &amp; <span class="number">0xffff</span>);
+	<span class="keyword">return</span> <span class="number">2</span>;
+}
+
+<span class="comment">/** Write a bit float to 2x16bit registers
+ * @function set_f32
+ * @param num floating point number
+ * @return reg1 upper 16bits of a 32bit float
+ * @return reg2 lower 16bits of a 32bit float
+ */</span><a id="204"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_set_f32(lua_State *L)
+{
+	<span class="comment">/* truncate to float if necessary */</span>
+	<span class="keyword">const</span> <span class="keyword">float</span> in = (<span class="keyword">float</span>)luaL_checknumber(L, <span class="number">1</span>);
+	uint32_t out;
+	memcpy(&amp;out, &amp;in, <span class="keyword">sizeof</span>(out));
+	lua_pushinteger(L, out &gt;&gt; <span class="number">16</span>);
+	lua_pushinteger(L, out &amp; <span class="number">0xffff</span>);
+	<span class="keyword">return</span> <span class="number">2</span>;
+}
+
+
+<span class="comment">/**
+ * 16bit register as number to signed 16bit
+ * @function get_s16
+ * @param 1 16bit register
+ * @return signed 16bit number
+ */</span><a id="222"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_get_s16(lua_State *L)
+{
+	<span class="keyword">const</span> int16_t in = luaL_checknumber(L, <span class="number">1</span>);
+	lua_pushinteger(L, in);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * 2x16bit registers as number to signed 32 bit
+ * @function get_s32
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */</span><a id="236"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_get_s32(lua_State *L)
+{
+	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
+	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">2</span>);
+	int32_t out = in1 &lt;&lt; <span class="number">16</span> | in2;
+	lua_pushinteger(L, out);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * 2x16bit registers as number to signed 32 bit (reverse order)
+ * @function get_s32le
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */</span><a id="252"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_get_s32le(lua_State *L)
+{
+	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">1</span>);
+	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">2</span>);
+	int32_t out = in1 &lt;&lt; <span class="number">16</span> | in2;
+	lua_pushinteger(L, out);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+
+<span class="comment">/**
+ * 2x16bit registers as number to unsigned 32 bit
+ * @function get_u32
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */</span><a id="269"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_get_u32(lua_State *L)
+{
+	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
+	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">2</span>);
+	uint32_t out = in1 &lt;&lt; <span class="number">16</span> | in2;
+	lua_pushnumber(L, out);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * 2x16bit registers as number to unsigned 32 bit (reversed order)
+ * @function get_u32le
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */</span><a id="285"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_get_u32le(lua_State *L)
+{
+	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">1</span>);
+	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">2</span>);
+	uint32_t out = in1 &lt;&lt; <span class="number">16</span> | in2;
+	lua_pushnumber(L, out);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * 2x16bit registers as number to 32 bit float
+ * @function get_f32
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit float
+ */</span><a id="301"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_get_f32(lua_State *L)
+{
+	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
+	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">2</span>);
+
+	uint32_t inval = in1&lt;&lt;<span class="number">16</span> | in2;
+	<span class="keyword">float</span> f;
+	memcpy(&amp;f, &amp;inval, <span class="keyword">sizeof</span>(f));
+
+	lua_pushnumber(L, f);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * 2x16bit registers as number to 32 bit float (Reversed order)
+ * @function get_f32le
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit float
+ */</span><a id="321"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_get_f32le(lua_State *L)
+{
+	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">1</span>);
+	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">2</span>);
+
+	uint32_t inval = in1&lt;&lt;<span class="number">16</span> | in2;
+	<span class="keyword">float</span> f;
+	memcpy(&amp;f, &amp;inval, <span class="keyword">sizeof</span>(f));
+
+	lua_pushnumber(L, f);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * 4x16bit registers as number to signed 64 bit
+ * @function get_s64
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @param 3 16bit register
+ * @param 4 16bit register
+ * @return 64bit number
+ */</span><a id="343"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_get_s64(lua_State *L)
+{
+	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
+	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">2</span>);
+	<span class="keyword">const</span> uint16_t in3 = luaL_checknumber(L, <span class="number">3</span>);
+	<span class="keyword">const</span> uint16_t in4 = luaL_checknumber(L, <span class="number">4</span>);
+	int64_t out = in1;
+	out = out &lt;&lt; <span class="number">16</span> | in2;
+	out = out &lt;&lt; <span class="number">16</span> | in3;
+	out = out &lt;&lt; <span class="number">16</span> | in4;
+	lua_pushnumber(L, out);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * 4x16bit registers as number to unsigned 64 bit
+ * @function get_u64
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @param 3 16bit register
+ * @param 4 16bit register
+ * @return 64bit number
+ */</span><a id="366"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> helper_get_u64(lua_State *L)
+{
+	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
+	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">2</span>);
+	<span class="keyword">const</span> uint16_t in3 = luaL_checknumber(L, <span class="number">3</span>);
+	<span class="keyword">const</span> uint16_t in4 = luaL_checknumber(L, <span class="number">4</span>);
+	uint64_t out = (uint64_t)in1 &lt;&lt; <span class="number">48</span> | (uint64_t)in2 &lt;&lt; <span class="number">32</span> | (uint64_t)in3 &lt;&lt; <span class="number">16</span> | in4;
+	lua_pushnumber(L, out);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+
+<span class="keyword">static</span> ctx_t * ctx_check(lua_State *L, <span class="keyword">int</span> i)
+{
+	<span class="keyword">return</span> (ctx_t *) luaL_checkudata(L, i, MODBUS_META_CTX);
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_destroy(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	modbus_close(ctx-&gt;modbus);
+	modbus_free(ctx-&gt;modbus);
+	<span class="keyword">if</span> (ctx-&gt;dev_host) {
+		free(ctx-&gt;dev_host);
+	}
+	<span class="keyword">if</span> (ctx-&gt;service) {
+		free(ctx-&gt;service);
+	}
+
+	<span class="comment">/* remove all methods operating on ctx */</span>
+	lua_newtable(L);
+	lua_setmetatable(L, -<span class="number">2</span>);
+
+	<span class="comment">/* Nothing to return on stack */</span>
+	<span class="keyword">return</span> <span class="number">0</span>;
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_tostring(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+
+	<span class="keyword">if</span> (ctx-&gt;databits) {
+		lua_pushfstring(L, <span class="string">"ModbusRTU&lt;%s@%d/%c%d&gt;"</span>, ctx-&gt;dev_host, ctx-&gt;databits, ctx-&gt;parity, ctx-&gt;stopbits);
+	} <span class="keyword">else</span> {
+		lua_pushfstring(L, <span class="string">"ModbusTCP&lt;%s@%s&gt;"</span>, ctx-&gt;dev_host, ctx-&gt;service);
+	}
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/** Context Methods.
+ * These functions are members of a modbus context, from either new_rtu() or new_tcp_pi()
+ * @section context_methods
+ */</span>
+
+<span class="comment">/**
+ * Connect, see modbus_connect()
+ * @function ctx:connect
+ */</span><a id="424"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_connect(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+
+	<span class="keyword">int</span> rc = modbus_connect(ctx-&gt;modbus);
+
+	<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, rc, <span class="number">0</span>);
+}
+
+<span class="comment">/**
+ * Close, see modbus_close()
+ * @function ctx:close
+ */</span><a id="437"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_close(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+
+	modbus_close(ctx-&gt;modbus);
+
+	<span class="keyword">return</span> <span class="number">0</span>;
+}
+
+<span class="comment">/**
+ * Set debug
+ * @function ctx:set_debug
+ * @param enable optional bool, defaults to true
+ */</span><a id="451"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_set_debug(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">bool</span> opt;
+	<span class="keyword">if</span> (lua_isnil(L, -<span class="number">1</span>)) {
+		opt = <span class="keyword">true</span>;
+	} <span class="keyword">else</span> {
+		opt = lua_toboolean(L, -<span class="number">1</span>);
+	}
+	modbus_set_debug(ctx-&gt;modbus, opt);
+	<span class="keyword">return</span> <span class="number">0</span>;
+}
+
+<span class="comment">/**
+ * Set error recovery, see modbus_set_error_recovery
+ * FIXME get autodocs for the defined constants
+ * arguments will be or'd together
+ * @function ctx:set_error_recovery
+ * @param a either ERROR_RECOVERY_NONE or ERROR_RECOVERY_LINK or ERROR_RECOVERY_PROTOCOL
+ * @param b as a
+ */</span><a id="472"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_set_error_recovery(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> opt = luaL_checkinteger(L, <span class="number">2</span>);
+	<span class="keyword">int</span> opt2 = luaL_optinteger(L, <span class="number">3</span>, <span class="number">0</span>);
+
+	<span class="keyword">int</span> rc = modbus_set_error_recovery(ctx-&gt;modbus, opt | opt2);
+
+	<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, rc, <span class="number">0</span>);
+}
+
+<span class="comment">/**
+ * See also modbus_set_byte_timeout
+ * @function ctx:set_byte_timeout
+ * @param seconds (required)
+ * @param microseconds (optional, defaults to 0)
+ */</span><a id="489"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_set_byte_timeout(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> opt = luaL_checkinteger(L, <span class="number">2</span>);
+	<span class="keyword">int</span> opt2 = luaL_optinteger(L, <span class="number">3</span>, <span class="number">0</span>);
+
+#if LIBMODBUS_VERSION_CHECK(3,1,0)
+	modbus_set_byte_timeout(ctx-&gt;modbus, opt, opt2);
+#else
+	<span class="keyword">struct</span> timeval t = { opt, opt2 };
+	modbus_set_byte_timeout(ctx-&gt;modbus, &amp;t);
+#endif
+
+	<span class="keyword">return</span> <span class="number">0</span>;
+}
+
+<span class="comment">/**
+ * @function ctx:get_byte_timeout
+ * @return[1] seconds
+ * @return[1] microseconds
+ */</span><a id="507"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_get_byte_timeout(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	uint32_t opt1, opt2;
+
+#if LIBMODBUS_VERSION_CHECK(3,1,0)
+	modbus_get_byte_timeout(ctx-&gt;modbus, &amp;opt1, &amp;opt2);
+#else
+	<span class="keyword">struct</span> timeval t;
+	modbus_get_byte_timeout(ctx-&gt;modbus, &amp;t);
+	opt1 = t.tv_sec;
+	opt2 = t.tv_usec;
+#endif
+	lua_pushnumber(L, opt1);
+	lua_pushnumber(L, opt2);
+
+	<span class="keyword">return</span> <span class="number">2</span>;
+}
+
+<span class="comment">/**
+ * @function ctx:set_response_timeout
+ * @param seconds (required)
+ * @param microseconds (optional, defaults to 0)
+ */</span><a id="528"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_set_response_timeout(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> opt = luaL_checkinteger(L, <span class="number">2</span>);
+	<span class="keyword">int</span> opt2 = luaL_optinteger(L, <span class="number">3</span>, <span class="number">0</span>);
+
+#if LIBMODBUS_VERSION_CHECK(3,1,0)
+	modbus_set_response_timeout(ctx-&gt;modbus, opt, opt2);
+#else
+	<span class="keyword">struct</span> timeval t = { opt, opt2 };
+	modbus_set_response_timeout(ctx-&gt;modbus, &amp;t);
+#endif
+
+	<span class="keyword">return</span> <span class="number">0</span>;
+}
+
+<span class="comment">/**
+ * @function ctx:get_response_timeout
+ * @return[1] seconds
+ * @return[1] microseconds
+ */</span><a id="546"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_get_response_timeout(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	uint32_t opt1, opt2;
+
+#if LIBMODBUS_VERSION_CHECK(3,1,0)
+	modbus_get_response_timeout(ctx-&gt;modbus, &amp;opt1, &amp;opt2);
+#else
+	<span class="keyword">struct</span> timeval t;
+	modbus_get_response_timeout(ctx-&gt;modbus, &amp;t);
+	opt1 = t.tv_sec;
+	opt2 = t.tv_usec;
+#endif
+	lua_pushnumber(L, opt1);
+	lua_pushnumber(L, opt2);
+
+	<span class="keyword">return</span> <span class="number">2</span>;
+}
+
+<span class="comment">/**
+ * @function ctx:get_socket
+ * @return the socket number
+ */</span><a id="566"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_get_socket(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+
+	lua_pushinteger(L, modbus_get_socket(ctx-&gt;modbus));
+
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * @function ctx:set_socket
+ * @param sock integer socket number to set
+ */</span><a id="579"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_set_socket(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> newfd = luaL_checknumber(L, <span class="number">2</span>);
+
+	modbus_set_socket(ctx-&gt;modbus, newfd);
+
+	<span class="keyword">return</span> <span class="number">0</span>;
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_get_header_length(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+
+	lua_pushinteger(L, modbus_get_header_length(ctx-&gt;modbus));
+
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * @function ctx:set_slave
+ * @param unitid the unit address / slave id to use
+ */</span><a id="602"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_set_slave(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> slave = luaL_checknumber(L, <span class="number">2</span>);
+
+	<span class="keyword">int</span> rc = modbus_set_slave(ctx-&gt;modbus, slave);
+
+	<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, rc, <span class="number">0</span>);
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> _ctx_read_bits(lua_State *L, <span class="keyword">bool</span> input)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> addr = luaL_checknumber(L, <span class="number">2</span>);
+	<span class="keyword">int</span> count = luaL_checknumber(L, <span class="number">3</span>);
+	<span class="keyword">int</span> rcount = <span class="number">0</span>;
+	<span class="keyword">int</span> rc;
+
+	<span class="keyword">if</span> (count &gt; MODBUS_MAX_READ_BITS) {
+		<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"requested too many bits"</span>);
+	}
+
+	uint8_t *buf = malloc(count * <span class="keyword">sizeof</span>(uint8_t));
+	<span class="global">assert</span>(buf);
+	<span class="keyword">if</span> (input) {
+		rc = modbus_read_input_bits(ctx-&gt;modbus, addr, count, buf);
+	} <span class="keyword">else</span> {
+		rc = modbus_read_bits(ctx-&gt;modbus, addr, count, buf);
+	}
+
+	<span class="keyword">if</span> (rc == count) {
+		lua_newtable(L);
+		<span class="comment">/* nota bene, lua style offsets! */</span>
+		<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= rc; i++) {
+			lua_pushnumber(L, i);
+			<span class="comment">/* TODO - push number or push bool? what's a better lua api? */</span>
+			lua_pushnumber(L, buf[i-<span class="number">1</span>]);
+			lua_settable(L, -<span class="number">3</span>);
+		}
+		rcount = <span class="number">1</span>;
+	} <span class="keyword">else</span> {
+		rcount = libmodbus_rc_to_nil_error(L, rc, count);
+	}
+
+	free(buf);
+	<span class="keyword">return</span> rcount;
+}
+
+<span class="comment">/**
+ * @function ctx:read_input_bits
+ * @param address
+ * @param count
+ * @return an array of results
+ */</span><a id="656"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_read_input_bits(lua_State *L)
+{
+	<span class="keyword">return</span> _ctx_read_bits(L, <span class="keyword">true</span>);
+}
+
+<span class="comment">/**
+ * @function ctx:read_bits
+ * @param address
+ * @param count
+ * @return an array of results
+ */</span><a id="667"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_read_bits(lua_State *L)
+{
+	<span class="keyword">return</span> _ctx_read_bits(L, <span class="keyword">false</span>);
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> _ctx_read_regs(lua_State *L, <span class="keyword">bool</span> input)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> addr = luaL_checknumber(L, <span class="number">2</span>);
+	<span class="keyword">int</span> count = luaL_checknumber(L, <span class="number">3</span>);
+	<span class="keyword">int</span> rcount = <span class="number">0</span>;
+	<span class="keyword">int</span> rc;
+
+	<span class="keyword">if</span> (count &gt; MODBUS_MAX_READ_REGISTERS) {
+		<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"requested too many registers"</span>);
+	}
+
+	<span class="comment">// better malloc as much space as we need to return data here...
+</span>	uint16_t *buf = malloc(count * <span class="keyword">sizeof</span>(uint16_t));
+	<span class="global">assert</span>(buf);
+	<span class="keyword">if</span> (input) {
+		rc = modbus_read_input_registers(ctx-&gt;modbus, addr, count, buf);
+	} <span class="keyword">else</span> {
+		rc = modbus_read_registers(ctx-&gt;modbus, addr, count, buf);
+	}
+	<span class="keyword">if</span> (rc == count) {
+		lua_newtable(L);
+		<span class="comment">/* nota bene, lua style offsets! */</span>
+		<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= rc; i++) {
+			lua_pushnumber(L, i);
+			lua_pushnumber(L, buf[i-<span class="number">1</span>]);
+			lua_settable(L, -<span class="number">3</span>);
+		}
+		rcount = <span class="number">1</span>;
+	} <span class="keyword">else</span> {
+		rcount = libmodbus_rc_to_nil_error(L, rc, count);
+	}
+
+	free(buf);
+	<span class="keyword">return</span> rcount;
+}
+
+<span class="comment">/**
+ * @function ctx:read_input_registers
+ * @param address
+ * @param count
+ * @return an array of results
+ */</span><a id="715"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_read_input_registers(lua_State *L)
+{
+	<span class="keyword">return</span> _ctx_read_regs(L, <span class="keyword">true</span>);
+}
+
+<span class="comment">/**
+ * @function ctx:read_registers
+ * @param address
+ * @param count
+ * @return an array of results
+ */</span><a id="726"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_read_registers(lua_State *L)
+{
+	<span class="keyword">return</span> _ctx_read_regs(L, <span class="keyword">false</span>);
+}
+
+<span class="comment">/**
+ * @function ctx:report_slave_id
+ * @return a luastring with the raw result (lua strings can contain nulls)
+ */</span><a id="735"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_report_slave_id(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+
+	uint8_t *buf = malloc(ctx-&gt;max_len);
+	<span class="global">assert</span>(buf);
+#if LIBMODBUS_VERSION_CHECK(3,1,0)
+	<span class="keyword">int</span> rc = modbus_report_slave_id(ctx-&gt;modbus, ctx-&gt;max_len, buf);
+#else
+	<span class="keyword">int</span> rc = modbus_report_slave_id(ctx-&gt;modbus, buf);
+#endif
+	<span class="keyword">if</span> (rc &lt; <span class="number">0</span>) {
+		<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, rc, <span class="number">0</span>);
+	}
+
+	lua_pushlstring(L, (<span class="keyword">char</span> *)buf, rc);
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * @function ctx:write_bit
+ * @param address
+ * @param value either a number or a boolean
+ */</span><a id="756"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_write_bit(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> addr = luaL_checknumber(L, <span class="number">2</span>);
+	<span class="keyword">int</span> val;
+
+	<span class="keyword">if</span> (lua_type(L, <span class="number">3</span>) == LUA_TNUMBER) {
+		val = lua_tonumber(L, <span class="number">3</span>);
+	} <span class="keyword">else</span> <span class="keyword">if</span> (lua_type(L, <span class="number">3</span>) == LUA_TBOOLEAN) {
+		val = lua_toboolean(L, <span class="number">3</span>);
+	} <span class="keyword">else</span> {
+		<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"bit must be numeric or boolean"</span>);
+	}
+
+	<span class="keyword">int</span> rc = modbus_write_bit(ctx-&gt;modbus, addr, val);
+
+	<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, rc, <span class="number">1</span>);
+}
+
+<span class="comment">/**
+ * @function ctx:write_register
+ * @param address
+ * @param value
+ */</span><a id="780"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_write_register(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> addr = luaL_checknumber(L, <span class="number">2</span>);
+	<span class="keyword">int</span> val = luaL_checknumber(L, <span class="number">3</span>);
+
+	<span class="keyword">int</span> rc = modbus_write_register(ctx-&gt;modbus, addr, val);
+
+	<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, rc, <span class="number">1</span>);
+}
+
+
+<span class="comment">/**
+ * @function ctx:write_bits
+ * @param address
+ * @param value as a lua array table
+ */</span><a id="797"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_write_bits(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> addr = luaL_checknumber(L, <span class="number">2</span>);
+	<span class="keyword">int</span> rc;
+	<span class="keyword">int</span> rcount;
+
+	<span class="comment">/*
+	 * TODO - could allow just a series of arguments too? easier for
+	 * smaller sets?"?)
+	 */</span>
+	luaL_checktype(L, <span class="number">3</span>, LUA_TTABLE);
+	<span class="comment">/* array style table only! */</span>
+	<span class="keyword">int</span> count = lua_objlen(L, <span class="number">3</span>);
+
+	<span class="keyword">if</span> (count &gt; MODBUS_MAX_WRITE_BITS) {
+		<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"requested too many bits"</span>);
+	}
+
+	<span class="comment">/* Convert table to uint8_t array */</span>
+	uint8_t *buf = malloc(count * <span class="keyword">sizeof</span>(uint8_t));
+	<span class="global">assert</span>(buf);
+	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= count; i++) {
+		<span class="keyword">bool</span> ok = <span class="keyword">false</span>;
+		lua_rawgeti(L, <span class="number">3</span>, i);
+		<span class="keyword">if</span> (lua_type(L, -<span class="number">1</span>) == LUA_TNUMBER) {
+			buf[i-<span class="number">1</span>] = lua_tonumber(L, -<span class="number">1</span>);
+			ok = <span class="keyword">true</span>;
+		}
+		<span class="keyword">if</span> (lua_type(L, -<span class="number">1</span>) == LUA_TBOOLEAN) {
+			buf[i-<span class="number">1</span>] = lua_toboolean(L, -<span class="number">1</span>);
+			ok = <span class="keyword">true</span>;
+		}
+
+		<span class="keyword">if</span> (ok) {
+			lua_pop(L, <span class="number">1</span>);
+		} <span class="keyword">else</span> {
+			free(buf);
+			<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"table values must be numeric or bool"</span>);
+		}
+	}
+	rc = modbus_write_bits(ctx-&gt;modbus, addr, count, buf);
+	<span class="keyword">if</span> (rc == count) {
+		rcount = <span class="number">1</span>;
+		lua_pushboolean(L, <span class="keyword">true</span>);
+	} <span class="keyword">else</span> {
+		rcount = libmodbus_rc_to_nil_error(L, rc, count);
+	}
+
+	free(buf);
+	<span class="keyword">return</span> rcount;
+}
+
+
+<span class="comment">/**
+ * @function ctx:write_registers
+ * @param address
+ * @param value as a lua array table, or a sequence of values.
+ * @usage either
+ *  ctx:write_registers(0x2000, {1,2,3})
+ *  ctx:write_registers(0x2000, 1, 2, 3)
+ */</span><a id="859"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_write_registers(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> addr = luaL_checknumber(L, <span class="number">2</span>);
+	<span class="keyword">int</span> rc;
+	<span class="keyword">int</span> rcount;
+	uint16_t *buf;
+	<span class="keyword">int</span> count;
+
+	<span class="keyword">if</span> (lua_type(L, <span class="number">3</span>) == LUA_TTABLE) {
+		<span class="comment">/* array style table only! */</span>
+		count = lua_objlen(L, <span class="number">3</span>);
+
+		<span class="keyword">if</span> (count &gt; MODBUS_MAX_WRITE_REGISTERS) {
+			<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"requested too many registers"</span>);
+		}
+
+		<span class="comment">/* Convert table to uint16_t array */</span>
+		buf = malloc(count * <span class="keyword">sizeof</span>(uint16_t));
+		<span class="global">assert</span>(buf);
+		<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= count; i++) {
+			lua_rawgeti(L, <span class="number">3</span>, i);
+			<span class="comment">/* user beware! we're not range checking your values */</span>
+			<span class="keyword">if</span> (lua_type(L, -<span class="number">1</span>) != LUA_TNUMBER) {
+				free(buf);
+				<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"table values must be numeric yo"</span>);
+			}
+			<span class="comment">/* This preserves sign and fractions better than tointeger() */</span>
+			lua_Number n = lua_tonumber(L, -<span class="number">1</span>);
+			buf[i-<span class="number">1</span>] = (int16_t)n;
+			lua_pop(L, <span class="number">1</span>);
+		}
+	} <span class="keyword">else</span> {
+		<span class="comment">/* Assume sequence of values then... */</span>
+		<span class="keyword">int</span> total_args = lua_gettop(L);
+		<span class="keyword">if</span> (total_args &lt; <span class="number">3</span>) {
+			<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"No values provided to write!"</span>);
+		}
+		count = total_args - <span class="number">2</span>;
+		buf = malloc(count * <span class="keyword">sizeof</span>(uint16_t));
+		<span class="global">assert</span>(buf);
+		<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) {
+			buf[i] = (int16_t)lua_tonumber(L, i + <span class="number">3</span>);
+		}
+	}
+	rc = modbus_write_registers(ctx-&gt;modbus, addr, count, buf);
+	<span class="keyword">if</span> (rc == count) {
+		rcount = <span class="number">1</span>;
+		lua_pushboolean(L, <span class="keyword">true</span>);
+	} <span class="keyword">else</span> {
+		rcount = libmodbus_rc_to_nil_error(L, rc, count);
+	}
+
+	free(buf);
+	<span class="keyword">return</span> rcount;
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_send_raw_request(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> rc;
+	<span class="keyword">int</span> rcount;
+	<span class="keyword">int</span> count = lua_objlen(L, <span class="number">2</span>);
+	luaL_checktype(L, <span class="number">2</span>, LUA_TTABLE);
+	<span class="comment">/* array style table only! */</span>
+
+	<span class="comment">/* Convert table to uint8_t array */</span>
+	uint8_t *buf = malloc(lua_objlen(L, <span class="number">2</span>) * <span class="keyword">sizeof</span>(uint8_t));
+	<span class="global">assert</span>(buf);
+	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= count; i++) {
+		lua_rawgeti(L, <span class="number">2</span>, i);
+		<span class="comment">/* user beware! we're not range checking your values */</span>
+		<span class="keyword">if</span> (lua_type(L, -<span class="number">1</span>) != LUA_TNUMBER) {
+			free(buf);
+			<span class="keyword">return</span> luaL_argerror(L, <span class="number">2</span>, <span class="string">"table values must be numeric"</span>);
+		}
+		buf[i-<span class="number">1</span>] = lua_tonumber(L, -<span class="number">1</span>);
+		lua_pop(L, <span class="number">1</span>);
+	};
+	rc = modbus_send_raw_request(ctx-&gt;modbus, buf, count);
+
+	<span class="keyword">if</span> (rc &lt; <span class="number">0</span>) {
+		lua_pushnil(L);
+		lua_pushstring(L, modbus_strerror(errno));
+		rcount = <span class="number">2</span>;
+	} <span class="keyword">else</span> {
+                <span class="comment">// wait
+</span>		lua_pushboolean(L, <span class="keyword">true</span>);
+		rcount = <span class="number">1</span>;
+	}
+	<span class="keyword">long</span> wait = lua_tonumber(L,<span class="number">3</span>);
+	<span class="keyword">if</span> (wait &gt; <span class="number">0</span>) {
+		<span class="keyword">static</span> <span class="keyword">struct</span> timeval tim;
+		tim.tv_sec = <span class="number">0</span>;
+		tim.tv_usec = wait;
+		<span class="keyword">if</span> (<span class="global">select</span>(<span class="number">0</span>, NULL, NULL, NULL, &amp;tim) &lt; <span class="number">0</span>) {
+			lua_pushnil(L);
+			<span class="keyword">return</span> <span class="number">2</span>;
+		};
+	}
+
+	free(buf);
+	<span class="keyword">return</span> rcount;
+
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_tcp_pi_listen(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> conns = luaL_optinteger(L, <span class="number">2</span>, <span class="number">1</span>);
+
+	<span class="keyword">int</span> sock = modbus_tcp_pi_listen(ctx-&gt;modbus, conns);
+	<span class="keyword">if</span> (sock == -<span class="number">1</span>) {
+		<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, <span class="number">0</span>, <span class="number">1</span>);
+	}
+	lua_pushnumber(L, sock);
+
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_tcp_pi_accept(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> sock = luaL_checknumber(L, <span class="number">2</span>);
+
+	sock = modbus_tcp_pi_accept(ctx-&gt;modbus, &amp;sock);
+	<span class="keyword">if</span> (sock == -<span class="number">1</span>) {
+		<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, <span class="number">0</span>, <span class="number">1</span>);
+	}
+	lua_pushnumber(L, sock);
+
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_receive(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> rcount;
+
+	uint8_t *req = malloc(ctx-&gt;max_len);
+	<span class="keyword">int</span> rc = modbus_receive(ctx-&gt;modbus, req);
+	<span class="keyword">if</span> (rc &gt; <span class="number">0</span>) {
+		lua_pushnumber(L, rc);
+		lua_pushlstring(L, (<span class="keyword">char</span> *)req, rc);
+		rcount = <span class="number">2</span>;
+	} <span class="keyword">else</span> <span class="keyword">if</span> (rc == <span class="number">0</span>) {
+		printf(<span class="string">"Special case for rc = 0, can't remember\n"</span>);
+		rcount = <span class="number">0</span>;
+	} <span class="keyword">else</span> {
+		rcount = libmodbus_rc_to_nil_error(L, rc, <span class="number">0</span>);
+	}
+	<span class="keyword">return</span> rcount;
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_reply(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	size_t req_len;
+	<span class="keyword">const</span> <span class="keyword">char</span> *req = luaL_checklstring(L, <span class="number">2</span>, &amp;req_len);
+
+	luaL_checktype(L, <span class="number">3</span>, LUA_TTABLE);
+
+	<span class="comment">// FIXME - oh boy, probably need a whole lot of wrappers on the mappings?
+</span>	<span class="comment">//modbus_reply(ctx-&gt;modbus, (uint8_t*)req, req_len, mapping);
+</span>	(<span class="keyword">void</span>)ctx;
+	(<span class="keyword">void</span>)req;
+	<span class="keyword">return</span> luaL_error(L, <span class="string">"reply is simply unimplemented my friend!"</span>);
+}
+
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_reply_exception(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">const</span> <span class="keyword">char</span> *req = luaL_checklstring(L, <span class="number">2</span>, NULL);
+	<span class="keyword">int</span> exception = luaL_checknumber(L, <span class="number">3</span>);
+
+	<span class="keyword">int</span> rc = modbus_reply_exception(ctx-&gt;modbus, (uint8_t*)req, exception);
+	<span class="keyword">if</span> (rc == -<span class="number">1</span>) {
+		<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, <span class="number">0</span>, <span class="number">1</span>);
+	} <span class="keyword">else</span> {
+		<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, rc, rc);
+	}
+}
+
+
+<span class="keyword">struct</span> definei {
+        <span class="keyword">const</span> <span class="keyword">char</span>* name;
+        <span class="keyword">int</span> value;
+};
+
+<span class="keyword">struct</span> defines {
+        <span class="keyword">const</span> <span class="keyword">char</span>* name;
+        <span class="keyword">const</span> <span class="keyword">char</span>* value;
+};
+
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">struct</span> definei D[] = {
+        {<span class="string">"RTU_RS232"</span>, MODBUS_RTU_RS232},
+        {<span class="string">"RTU_RS485"</span>, MODBUS_RTU_RS485},
+	{<span class="string">"TCP_SLAVE"</span>, MODBUS_TCP_SLAVE},
+	{<span class="string">"BROADCAST_ADDRESS"</span>, MODBUS_BROADCAST_ADDRESS},
+	{<span class="string">"ERROR_RECOVERY_NONE"</span>, MODBUS_ERROR_RECOVERY_NONE},
+	{<span class="string">"ERROR_RECOVERY_LINK"</span>, MODBUS_ERROR_RECOVERY_LINK},
+	{<span class="string">"ERROR_RECOVERY_PROTOCOL"</span>, MODBUS_ERROR_RECOVERY_PROTOCOL},
+	{<span class="string">"EXCEPTION_ILLEGAL_FUNCTION"</span>, MODBUS_EXCEPTION_ILLEGAL_FUNCTION},
+	{<span class="string">"EXCEPTION_ILLEGAL_DATA_ADDRESS"</span>, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS},
+	{<span class="string">"EXCEPTION_ILLEGAL_DATA_VALUE"</span>, MODBUS_EXCEPTION_ILLEGAL_DATA_VALUE},
+	{<span class="string">"EXCEPTION_SLAVE_OR_SERVER_FAILURE"</span>, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE},
+	{<span class="string">"EXCEPTION_ACKNOWLEDGE"</span>, MODBUS_EXCEPTION_ACKNOWLEDGE},
+	{<span class="string">"EXCEPTION_SLAVE_OR_SERVER_BUSY"</span>, MODBUS_EXCEPTION_SLAVE_OR_SERVER_BUSY},
+	{<span class="string">"EXCEPTION_NEGATIVE_ACKNOWLEDGE"</span>, MODBUS_EXCEPTION_NEGATIVE_ACKNOWLEDGE},
+	{<span class="string">"EXCEPTION_MEMORY_PARITY"</span>, MODBUS_EXCEPTION_MEMORY_PARITY},
+	{<span class="string">"EXCEPTION_NOT_DEFINED"</span>, MODBUS_EXCEPTION_NOT_DEFINED},
+	{<span class="string">"EXCEPTION_GATEWAY_PATH"</span>, MODBUS_EXCEPTION_GATEWAY_PATH},
+	{<span class="string">"EXCEPTION_GATEWAY_TARGET"</span>, MODBUS_EXCEPTION_GATEWAY_TARGET},
+        {NULL, <span class="number">0</span>}
+};
+
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">struct</span> defines S[] = {
+	{<span class="string">"VERSION_STRING"</span>, LIBMODBUS_VERSION_STRING},
+        {NULL, NULL}
+};
+
+<span class="keyword">static</span> <span class="keyword">void</span> modbus_register_defs(lua_State *L, <span class="keyword">const</span> <span class="keyword">struct</span> definei *D, <span class="keyword">const</span> <span class="keyword">struct</span> defines *S)
+{
+        <span class="keyword">while</span> (D-&gt;name != NULL) {
+                lua_pushinteger(L, D-&gt;value);
+                lua_setfield(L, -<span class="number">2</span>, D-&gt;name);
+                D++;
+        }
+        <span class="keyword">while</span> (S-&gt;name != NULL) {
+                lua_pushstring(L, S-&gt;value);
+                lua_setfield(L, -<span class="number">2</span>, S-&gt;name);
+                S++;
+        }
+}
+
+
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">struct</span> luaL_Reg R[] = {
+	{<span class="string">"new_rtu"</span>,	libmodbus_new_rtu},
+	{<span class="string">"new_tcp_pi"</span>,	libmodbus_new_tcp_pi},
+	{<span class="string">"version"</span>,	libmodbus_version},
+
+	{<span class="string">"set_s32"</span>,	helper_set_s32},
+	{<span class="string">"set_f32"</span>,	helper_set_f32},
+
+	{<span class="string">"get_s16"</span>,	helper_get_s16},
+	{<span class="string">"get_s32"</span>,	helper_get_s32},
+	{<span class="string">"get_s32le"</span>,	helper_get_s32le},
+	{<span class="string">"get_u32"</span>,	helper_get_u32},
+	{<span class="string">"get_u32le"</span>,	helper_get_u32le},
+	{<span class="string">"get_f32"</span>,	helper_get_f32},
+	{<span class="string">"get_f32le"</span>,	helper_get_f32le},
+	{<span class="string">"get_s64"</span>,	helper_get_s64},
+	{<span class="string">"get_u64"</span>,	helper_get_u64},
+	<span class="comment">/* {"get_u16",	helper_get_u16}, Not normally useful, just use the number as it was returned */</span>
+
+	{NULL, NULL}
+};
+
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">struct</span> luaL_Reg ctx_M[] = {
+	{<span class="string">"connect"</span>,		ctx_connect},
+	{<span class="string">"close"</span>,		ctx_close},
+	{<span class="string">"destroy"</span>,		ctx_destroy},
+	{<span class="string">"get_socket"</span>,		ctx_get_socket},
+	{<span class="string">"get_byte_timeout"</span>,	ctx_get_byte_timeout},
+	{<span class="string">"get_header_length"</span>,	ctx_get_header_length},
+	{<span class="string">"get_response_timeout"</span>,ctx_get_response_timeout},
+	{<span class="string">"read_bits"</span>,		ctx_read_bits},
+	{<span class="string">"read_input_bits"</span>,	ctx_read_input_bits},
+	{<span class="string">"read_input_registers"</span>,ctx_read_input_registers},
+	{<span class="string">"read_registers"</span>,	ctx_read_registers},
+	{<span class="string">"report_slave_id"</span>,	ctx_report_slave_id},
+	{<span class="string">"set_debug"</span>,		ctx_set_debug},
+	{<span class="string">"set_byte_timeout"</span>,	ctx_set_byte_timeout},
+	{<span class="string">"set_error_recovery"</span>,	ctx_set_error_recovery},
+	{<span class="string">"set_response_timeout"</span>,ctx_set_response_timeout},
+	{<span class="string">"set_slave"</span>,		ctx_set_slave},
+	{<span class="string">"set_socket"</span>,		ctx_set_socket},
+	{<span class="string">"write_bit"</span>,		ctx_write_bit},
+	{<span class="string">"write_bits"</span>,		ctx_write_bits},
+	{<span class="string">"write_register"</span>,	ctx_write_register},
+	{<span class="string">"write_registers"</span>,	ctx_write_registers},
+	{<span class="string">"send_raw_request"</span>,	ctx_send_raw_request},
+	{<span class="string">"__gc"</span>,		ctx_destroy},
+	{<span class="string">"__tostring"</span>,		ctx_tostring},
+
+	<span class="comment">// FIXME - should really add these funcs only to contexts with tcp_pi!
+</span>	{<span class="string">"tcp_pi_listen"</span>,	ctx_tcp_pi_listen},
+	{<span class="string">"tcp_pi_accept"</span>,	ctx_tcp_pi_accept},
+
+	{<span class="string">"receive"</span>,		ctx_receive},
+	{<span class="string">"reply"</span>,		ctx_reply}, <span class="comment">/* Totally busted */</span>
+	{<span class="string">"reply_exception"</span>,	ctx_reply_exception},
+
+	{NULL, NULL}
+};
+
+<span class="keyword">int</span> luaopen_libmodbus(lua_State *L)
+{
+
+#ifdef LUA_ENVIRONINDEX
+	<span class="comment">/* set private environment for this module */</span>
+	lua_newtable(L);
+	lua_replace(L, LUA_ENVIRONINDEX);
+#endif
+
+	<span class="comment">/* metatable.__index = metatable */</span>
+	luaL_newmetatable(L, MODBUS_META_CTX);
+	lua_pushvalue(L, -<span class="number">1</span>);
+	lua_setfield(L, -<span class="number">2</span>, <span class="string">"__index"</span>);
+	luaL_setfuncs(L, ctx_M, <span class="number">0</span>);
+
+	luaL_newlib(L, R);
+
+	modbus_register_defs(L, D, S);
+
+	<span class="keyword">return</span> <span class="number">1</span>;
+}</pre>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2018-06-14 11:58:15 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

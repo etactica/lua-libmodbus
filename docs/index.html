@@ -1,0 +1,1128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>lua-libmodbus</h1>
+
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Context_Methods">Context Methods </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><strong>libmodbus</strong></li>
+</ul>
+<h2>Source</h2>
+<ul class="nowrap">
+  <li><a href="source/lua-libmodbus.c.html">lua-libmodbus.c</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>libmodbus</code></h1>
+<p>lua bindings to libmodbus</p>
+<p></p>
+    <h3>Info:</h3>
+    <ul>
+        <li><strong>Author</strong>:  Karl Palsson <karlp@remake.is> 2016
+<p>  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+<p>  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+<p>  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</li>
+    </ul>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#version">version ()</a></td>
+	<td class="summary">Returns the runtime linked version of libmodbus as a string</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#new_rtu">new_rtu (device, baud, parity, databits, stopbits)</a></td>
+	<td class="summary">Create a Modbus/RTU context</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#new_tcp_pi">new_tcp_pi (host, service)</a></td>
+	<td class="summary">Create a Modbus/TCP context</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#set_s32">set_s32 (num)</a></td>
+	<td class="summary">Write a 32bit (u)int to 2x16bit registers</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#set_f32">set_f32 (num)</a></td>
+	<td class="summary">Write a bit float to 2x16bit registers</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_s16">get_s16 (1)</a></td>
+	<td class="summary">16bit register as number to signed 16bit</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_s32">get_s32 (1, 2)</a></td>
+	<td class="summary">2x16bit registers as number to signed 32 bit</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_s32le">get_s32le (1, 2)</a></td>
+	<td class="summary">2x16bit registers as number to signed 32 bit (reverse order)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_u32">get_u32 (1, 2)</a></td>
+	<td class="summary">2x16bit registers as number to unsigned 32 bit</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_u32le">get_u32le (1, 2)</a></td>
+	<td class="summary">2x16bit registers as number to unsigned 32 bit (reversed order)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_f32">get_f32 (1, 2)</a></td>
+	<td class="summary">2x16bit registers as number to 32 bit float</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_f32le">get_f32le (1, 2)</a></td>
+	<td class="summary">2x16bit registers as number to 32 bit float (Reversed order)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_s64">get_s64 (1, 2, 3, 4)</a></td>
+	<td class="summary">4x16bit registers as number to signed 64 bit</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_u64">get_u64 (1, 2, 3, 4)</a></td>
+	<td class="summary">4x16bit registers as number to unsigned 64 bit</td>
+	</tr>
+</table>
+<h2><a href="#Context_Methods">Context Methods </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#ctx:connect">ctx:connect ()</a></td>
+	<td class="summary">Connect, see modbus_connect()</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:close">ctx:close ()</a></td>
+	<td class="summary">Close, see modbus_close()</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:set_debug">ctx:set_debug (enable)</a></td>
+	<td class="summary">Set debug</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:set_error_recovery">ctx:set_error_recovery (a, b)</a></td>
+	<td class="summary">Set error recovery, see modbus_set_error_recovery
+ FIXME get autodocs for the defined constants
+ arguments will be or'd together</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:set_byte_timeout">ctx:set_byte_timeout (seconds, microseconds)</a></td>
+	<td class="summary">See also modbus_set_byte_timeout</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:get_byte_timeout">ctx:get_byte_timeout ()</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:set_response_timeout">ctx:set_response_timeout (seconds, microseconds)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:get_response_timeout">ctx:get_response_timeout ()</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:get_socket">ctx:get_socket ()</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:set_socket">ctx:set_socket (sock)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:set_slave">ctx:set_slave (unitid)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:read_input_bits">ctx:read_input_bits (address, count)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:read_bits">ctx:read_bits (address, count)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:read_input_registers">ctx:read_input_registers (address, count)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:read_registers">ctx:read_registers (address, count)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:report_slave_id">ctx:report_slave_id ()</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:write_bit">ctx:write_bit (address, value)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:write_register">ctx:write_register (address, value)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:write_bits">ctx:write_bits (address, value)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:write_registers">ctx:write_registers (address, value)</a></td>
+	<td class="summary"></td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "version"></a>
+    <strong>version ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#73">line 73</a>
+    </dt>
+    <dd>
+    Returns the runtime linked version of libmodbus as a string
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        eg "3.0.6"
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "new_rtu"></a>
+    <strong>new_rtu (device, baud, parity, databits, stopbits)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#93">line 93</a>
+    </dt>
+    <dd>
+    Create a Modbus/RTU context
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">device</span>
+         (required)
+        </li>
+        <li><span class="parameter">baud</span>
+         rate, defaults to 19200
+        </li>
+        <li><span class="parameter">parity</span>
+         defaults to EVEN
+        </li>
+        <li><span class="parameter">databits</span>
+         defaults to 8
+        </li>
+        <li><span class="parameter">stopbits</span>
+         defaults to 1
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        a modbus context ready for use
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "new_tcp_pi"></a>
+    <strong>new_tcp_pi (host, service)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#154">line 154</a>
+    </dt>
+    <dd>
+    Create a Modbus/TCP context
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">host</span>
+         eg "192.168.1.100" or "modbus.example.org"
+        </li>
+        <li><span class="parameter">service</span>
+         eg "502" or "mbap"
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        a modbus context ready for use
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "set_s32"></a>
+    <strong>set_s32 (num)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#189">line 189</a>
+    </dt>
+    <dd>
+    Write a 32bit (u)int to 2x16bit registers
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+         32bit number
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        reg1 upper 16bits</li>
+        <li>
+        reg2 lower 16bits</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "set_f32"></a>
+    <strong>set_f32 (num)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#204">line 204</a>
+    </dt>
+    <dd>
+    Write a bit float to 2x16bit registers
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">num</span>
+         floating point number
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        reg1 upper 16bits of a 32bit float</li>
+        <li>
+        reg2 lower 16bits of a 32bit float</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_s16"></a>
+    <strong>get_s16 (1)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#222">line 222</a>
+    </dt>
+    <dd>
+    16bit register as number to signed 16bit
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">1</span>
+         16bit register
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        signed 16bit number
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_s32"></a>
+    <strong>get_s32 (1, 2)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#236">line 236</a>
+    </dt>
+    <dd>
+    2x16bit registers as number to signed 32 bit
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">1</span>
+         16bit register
+        </li>
+        <li><span class="parameter">2</span>
+         16bit register
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        32bit number
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_s32le"></a>
+    <strong>get_s32le (1, 2)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#252">line 252</a>
+    </dt>
+    <dd>
+    2x16bit registers as number to signed 32 bit (reverse order)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">1</span>
+         16bit register
+        </li>
+        <li><span class="parameter">2</span>
+         16bit register
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        32bit number
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_u32"></a>
+    <strong>get_u32 (1, 2)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#269">line 269</a>
+    </dt>
+    <dd>
+    2x16bit registers as number to unsigned 32 bit
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">1</span>
+         16bit register
+        </li>
+        <li><span class="parameter">2</span>
+         16bit register
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        32bit number
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_u32le"></a>
+    <strong>get_u32le (1, 2)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#285">line 285</a>
+    </dt>
+    <dd>
+    2x16bit registers as number to unsigned 32 bit (reversed order)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">1</span>
+         16bit register
+        </li>
+        <li><span class="parameter">2</span>
+         16bit register
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        32bit number
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_f32"></a>
+    <strong>get_f32 (1, 2)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#301">line 301</a>
+    </dt>
+    <dd>
+    2x16bit registers as number to 32 bit float
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">1</span>
+         16bit register
+        </li>
+        <li><span class="parameter">2</span>
+         16bit register
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        32bit float
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_f32le"></a>
+    <strong>get_f32le (1, 2)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#321">line 321</a>
+    </dt>
+    <dd>
+    2x16bit registers as number to 32 bit float (Reversed order)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">1</span>
+         16bit register
+        </li>
+        <li><span class="parameter">2</span>
+         16bit register
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        32bit float
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_s64"></a>
+    <strong>get_s64 (1, 2, 3, 4)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#343">line 343</a>
+    </dt>
+    <dd>
+    4x16bit registers as number to signed 64 bit
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">1</span>
+         16bit register
+        </li>
+        <li><span class="parameter">2</span>
+         16bit register
+        </li>
+        <li><span class="parameter">3</span>
+         16bit register
+        </li>
+        <li><span class="parameter">4</span>
+         16bit register
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        64bit number
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_u64"></a>
+    <strong>get_u64 (1, 2, 3, 4)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#366">line 366</a>
+    </dt>
+    <dd>
+    4x16bit registers as number to unsigned 64 bit
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">1</span>
+         16bit register
+        </li>
+        <li><span class="parameter">2</span>
+         16bit register
+        </li>
+        <li><span class="parameter">3</span>
+         16bit register
+        </li>
+        <li><span class="parameter">4</span>
+         16bit register
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        64bit number
+    </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Context_Methods"></a>Context Methods </h2>
+
+          <div class="section-description">
+
+ These functions are members of a modbus context, from either new_rtu() or new_tcp_pi()
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "ctx:connect"></a>
+    <strong>ctx:connect ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#424">line 424</a>
+    </dt>
+    <dd>
+    Connect, see modbus_connect()
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:close"></a>
+    <strong>ctx:close ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#437">line 437</a>
+    </dt>
+    <dd>
+    Close, see modbus_close()
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:set_debug"></a>
+    <strong>ctx:set_debug (enable)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#451">line 451</a>
+    </dt>
+    <dd>
+    Set debug
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">enable</span>
+         optional bool, defaults to true
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:set_error_recovery"></a>
+    <strong>ctx:set_error_recovery (a, b)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#472">line 472</a>
+    </dt>
+    <dd>
+    Set error recovery, see modbus_set_error_recovery
+ FIXME get autodocs for the defined constants
+ arguments will be or'd together
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">a</span>
+         either ERROR_RECOVERY_NONE or ERROR_RECOVERY_LINK or ERROR_RECOVERY_PROTOCOL
+        </li>
+        <li><span class="parameter">b</span>
+         as a
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:set_byte_timeout"></a>
+    <strong>ctx:set_byte_timeout (seconds, microseconds)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#489">line 489</a>
+    </dt>
+    <dd>
+    See also modbus_set_byte_timeout
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">seconds</span>
+         (required)
+        </li>
+        <li><span class="parameter">microseconds</span>
+         (optional, defaults to 0)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:get_byte_timeout"></a>
+    <strong>ctx:get_byte_timeout ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#507">line 507</a>
+    </dt>
+    <dd>
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        seconds</li>
+        <li>
+        microseconds</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:set_response_timeout"></a>
+    <strong>ctx:set_response_timeout (seconds, microseconds)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#528">line 528</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">seconds</span>
+         (required)
+        </li>
+        <li><span class="parameter">microseconds</span>
+         (optional, defaults to 0)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:get_response_timeout"></a>
+    <strong>ctx:get_response_timeout ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#546">line 546</a>
+    </dt>
+    <dd>
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        seconds</li>
+        <li>
+        microseconds</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:get_socket"></a>
+    <strong>ctx:get_socket ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#566">line 566</a>
+    </dt>
+    <dd>
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the socket number
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:set_socket"></a>
+    <strong>ctx:set_socket (sock)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#579">line 579</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">sock</span>
+         integer socket number to set
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:set_slave"></a>
+    <strong>ctx:set_slave (unitid)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#602">line 602</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">unitid</span>
+         the unit address / slave id to use
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:read_input_bits"></a>
+    <strong>ctx:read_input_bits (address, count)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#656">line 656</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">address</span>
+
+        </li>
+        <li><span class="parameter">count</span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        an array of results
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:read_bits"></a>
+    <strong>ctx:read_bits (address, count)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#667">line 667</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">address</span>
+
+        </li>
+        <li><span class="parameter">count</span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        an array of results
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:read_input_registers"></a>
+    <strong>ctx:read_input_registers (address, count)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#715">line 715</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">address</span>
+
+        </li>
+        <li><span class="parameter">count</span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        an array of results
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:read_registers"></a>
+    <strong>ctx:read_registers (address, count)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#726">line 726</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">address</span>
+
+        </li>
+        <li><span class="parameter">count</span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        an array of results
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:report_slave_id"></a>
+    <strong>ctx:report_slave_id ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#735">line 735</a>
+    </dt>
+    <dd>
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        a luastring with the raw result (lua strings can contain nulls)
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:write_bit"></a>
+    <strong>ctx:write_bit (address, value)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#756">line 756</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">address</span>
+
+        </li>
+        <li><span class="parameter">value</span>
+         either a number or a boolean
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:write_register"></a>
+    <strong>ctx:write_register (address, value)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#780">line 780</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">address</span>
+
+        </li>
+        <li><span class="parameter">value</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:write_bits"></a>
+    <strong>ctx:write_bits (address, value)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#797">line 797</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">address</span>
+
+        </li>
+        <li><span class="parameter">value</span>
+         as a lua array table
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:write_registers"></a>
+    <strong>ctx:write_registers (address, value)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#859">line 859</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">address</span>
+
+        </li>
+        <li><span class="parameter">value</span>
+         as a lua array table, or a sequence of values.
+        </li>
+    </ul>
+
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">either
+ ctx:write_registers(<span class="number">0x2000</span>, {<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>})
+ ctx:write_registers(<span class="number">0x2000</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>)</pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2018-06-14 11:58:15 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

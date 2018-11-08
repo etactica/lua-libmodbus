@@ -1,8 +1,7 @@
-/*
+/*** lua bindings to libmodbus
 
-  lua-libmodbus.c - Lua bindings to libmodbus
-
-  Copyright (c) 2016 Karl Palsson <karlp@remake.is>
+@module libmodbus
+@author Karl Palsson <karlp@remake.is> 2016
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -24,6 +23,8 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
+
+#define _POSIX_C_SOURCE 200809L
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -48,10 +49,18 @@ typedef struct {
 	lua_State *L;
 	modbus_t *modbus;
 	size_t max_len;
+
+	/* only used for making tostring */
+	char *dev_host;
+	char *service;
+	int baud;
+	char parity;
+	int databits;
+	int stopbits;
 } ctx_t;
 
-/**
- * Push either "true" or "nil, errormessage"
+/*
+ * Pushes either "true" or "nil, errormessage"
  * @param L
  * @param rc rc from modbus_xxxx function call
  * @param expected what rc was meant to be
@@ -72,7 +81,7 @@ static int libmodbus_rc_to_nil_error(lua_State *L, int rc, int expected)
 
 /**
  * Returns the runtime linked version of libmodbus as a string
- * @param L
+ * @function version
  * @return eg "3.0.6"
  */
 static int libmodbus_version(lua_State *L)
@@ -85,6 +94,16 @@ static int libmodbus_version(lua_State *L)
 	return 1;
 }
 
+/**
+ * Create a Modbus/RTU context
+ * @function new_rtu
+ * @param device (required)
+ * @param baud rate, defaults to 19200
+ * @param parity defaults to EVEN
+ * @param databits defaults to 8
+ * @param stopbits defaults to 1
+ * @return a modbus context ready for use
+ */
 static int libmodbus_new_rtu(lua_State *L)
 {
 	const char *device = luaL_checkstring(L, 1);
@@ -124,6 +143,16 @@ static int libmodbus_new_rtu(lua_State *L)
 
 	ctx->L = L;
 
+	/* save data for nice string representations */
+	ctx->baud = baud;
+	ctx->databits = databits;
+	ctx->dev_host = strdup(device);
+	ctx->parity = parity;
+	ctx->stopbits = stopbits;
+
+	/* Make sure unused fields are zeroed */
+	ctx->service = NULL;
+
 	luaL_getmetatable(L, MODBUS_META_CTX);
 	// Can I put more functions in for rtu here? maybe?
 	lua_setmetatable(L, -2);
@@ -132,6 +161,13 @@ static int libmodbus_new_rtu(lua_State *L)
 }
 
 
+/**
+ * Create a Modbus/TCP context
+ * @function new_tcp_pi
+ * @param host eg "192.168.1.100" or "modbus.example.org"
+ * @param service eg "502" or "mbap"
+ * @return a modbus context ready for use
+ */
 static int libmodbus_new_tcp_pi(lua_State *L)
 {
 	const char *host = luaL_checkstring(L, 1);
@@ -149,12 +185,212 @@ static int libmodbus_new_tcp_pi(lua_State *L)
 
 	ctx->L = L;
 
+	/* save data for nice string representations */
+	ctx->dev_host = strdup(host);
+	ctx->service = strdup(service);
+	ctx->databits = 0;
+
 	luaL_getmetatable(L, MODBUS_META_CTX);
 	// Can I put more functions in for tcp here? maybe?
 	lua_setmetatable(L, -2);
 
 	return 1;
 }
+
+/** Write a 32bit (u)int to 2x16bit registers
+ * @function set_s32
+ * @param num 32bit number
+ * @return reg1 upper 16bits
+ * @return reg2 lower 16bits
+ */
+static int helper_set_s32(lua_State *L)
+{
+	/* truncate as necessary */
+	const uint32_t toval = (uint32_t)luaL_checknumber(L, 1);
+	lua_pushinteger(L, toval >> 16);
+	lua_pushinteger(L, toval & 0xffff);
+	return 2;
+}
+
+/** Write a bit float to 2x16bit registers
+ * @function set_f32
+ * @param num floating point number
+ * @return reg1 upper 16bits of a 32bit float
+ * @return reg2 lower 16bits of a 32bit float
+ */
+static int helper_set_f32(lua_State *L)
+{
+	/* truncate to float if necessary */
+	const float in = (float)luaL_checknumber(L, 1);
+	uint32_t out;
+	memcpy(&out, &in, sizeof(out));
+	lua_pushinteger(L, out >> 16);
+	lua_pushinteger(L, out & 0xffff);
+	return 2;
+}
+
+
+/**
+ * 16bit register as number to signed 16bit
+ * @function get_s16
+ * @param 1 16bit register
+ * @return signed 16bit number
+ */
+static int helper_get_s16(lua_State *L)
+{
+	const int16_t in = luaL_checknumber(L, 1);
+	lua_pushinteger(L, in);
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to signed 32 bit
+ * @function get_s32
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */
+static int helper_get_s32(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+	int32_t out = in1 << 16 | in2;
+	lua_pushinteger(L, out);
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to signed 32 bit (reverse order)
+ * @function get_s32le
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */
+static int helper_get_s32le(lua_State *L)
+{
+	const uint16_t in2 = luaL_checknumber(L, 1);
+	const uint16_t in1 = luaL_checknumber(L, 2);
+	int32_t out = in1 << 16 | in2;
+	lua_pushinteger(L, out);
+	return 1;
+}
+
+
+/**
+ * 2x16bit registers as number to unsigned 32 bit
+ * @function get_u32
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */
+static int helper_get_u32(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+	uint32_t out = in1 << 16 | in2;
+	lua_pushnumber(L, out);
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to unsigned 32 bit (reversed order)
+ * @function get_u32le
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit number
+ */
+static int helper_get_u32le(lua_State *L)
+{
+	const uint16_t in2 = luaL_checknumber(L, 1);
+	const uint16_t in1 = luaL_checknumber(L, 2);
+	uint32_t out = in1 << 16 | in2;
+	lua_pushnumber(L, out);
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to 32 bit float
+ * @function get_f32
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit float
+ */
+static int helper_get_f32(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+
+	uint32_t inval = in1<<16 | in2;
+	float f;
+	memcpy(&f, &inval, sizeof(f));
+
+	lua_pushnumber(L, f);
+	return 1;
+}
+
+/**
+ * 2x16bit registers as number to 32 bit float (Reversed order)
+ * @function get_f32le
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @return 32bit float
+ */
+static int helper_get_f32le(lua_State *L)
+{
+	const uint16_t in2 = luaL_checknumber(L, 1);
+	const uint16_t in1 = luaL_checknumber(L, 2);
+
+	uint32_t inval = in1<<16 | in2;
+	float f;
+	memcpy(&f, &inval, sizeof(f));
+
+	lua_pushnumber(L, f);
+	return 1;
+}
+
+/**
+ * 4x16bit registers as number to signed 64 bit
+ * @function get_s64
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @param 3 16bit register
+ * @param 4 16bit register
+ * @return 64bit number
+ */
+static int helper_get_s64(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+	const uint16_t in3 = luaL_checknumber(L, 3);
+	const uint16_t in4 = luaL_checknumber(L, 4);
+	int64_t out = in1;
+	out = out << 16 | in2;
+	out = out << 16 | in3;
+	out = out << 16 | in4;
+	lua_pushnumber(L, out);
+	return 1;
+}
+
+/**
+ * 4x16bit registers as number to unsigned 64 bit
+ * @function get_u64
+ * @param 1 16bit register
+ * @param 2 16bit register
+ * @param 3 16bit register
+ * @param 4 16bit register
+ * @return 64bit number
+ */
+static int helper_get_u64(lua_State *L)
+{
+	const uint16_t in1 = luaL_checknumber(L, 1);
+	const uint16_t in2 = luaL_checknumber(L, 2);
+	const uint16_t in3 = luaL_checknumber(L, 3);
+	const uint16_t in4 = luaL_checknumber(L, 4);
+	uint64_t out = (uint64_t)in1 << 48 | (uint64_t)in2 << 32 | (uint64_t)in3 << 16 | in4;
+	lua_pushnumber(L, out);
+	return 1;
+}
+
 
 static ctx_t * ctx_check(lua_State *L, int i)
 {
@@ -166,6 +402,12 @@ static int ctx_destroy(lua_State *L)
 	ctx_t *ctx = ctx_check(L, 1);
 	modbus_close(ctx->modbus);
 	modbus_free(ctx->modbus);
+	if (ctx->dev_host) {
+		free(ctx->dev_host);
+	}
+	if (ctx->service) {
+		free(ctx->service);
+	}
 
 	/* remove all methods operating on ctx */
 	lua_newtable(L);
@@ -175,6 +417,27 @@ static int ctx_destroy(lua_State *L)
 	return 0;
 }
 
+static int ctx_tostring(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+
+	if (ctx->databits) {
+		lua_pushfstring(L, "ModbusRTU<%s@%d/%c%d>", ctx->dev_host, ctx->databits, ctx->parity, ctx->stopbits);
+	} else {
+		lua_pushfstring(L, "ModbusTCP<%s@%s>", ctx->dev_host, ctx->service);
+	}
+	return 1;
+}
+
+/** Context Methods.
+ * These functions are members of a modbus context, from either new_rtu() or new_tcp_pi()
+ * @section context_methods
+ */
+
+/**
+ * Connect, see modbus_connect()
+ * @function ctx:connect
+ */
 static int ctx_connect(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -184,6 +447,10 @@ static int ctx_connect(lua_State *L)
 	return libmodbus_rc_to_nil_error(L, rc, 0);
 }
 
+/**
+ * Close, see modbus_close()
+ * @function ctx:close
+ */
 static int ctx_close(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -193,6 +460,11 @@ static int ctx_close(lua_State *L)
 	return 0;
 }
 
+/**
+ * Set debug
+ * @function ctx:set_debug
+ * @param enable optional bool, defaults to true
+ */
 static int ctx_set_debug(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -206,6 +478,14 @@ static int ctx_set_debug(lua_State *L)
 	return 0;
 }
 
+/**
+ * Set error recovery, see modbus_set_error_recovery
+ * FIXME get autodocs for the defined constants
+ * arguments will be or'd together
+ * @function ctx:set_error_recovery
+ * @param a either ERROR_RECOVERY_NONE or ERROR_RECOVERY_LINK or ERROR_RECOVERY_PROTOCOL
+ * @param b as a
+ */
 static int ctx_set_error_recovery(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -217,6 +497,12 @@ static int ctx_set_error_recovery(lua_State *L)
 	return libmodbus_rc_to_nil_error(L, rc, 0);
 }
 
+/**
+ * See also modbus_set_byte_timeout
+ * @function ctx:set_byte_timeout
+ * @param seconds (required)
+ * @param microseconds (optional, defaults to 0)
+ */
 static int ctx_set_byte_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -233,6 +519,11 @@ static int ctx_set_byte_timeout(lua_State *L)
 	return 0;
 }
 
+/**
+ * @function ctx:get_byte_timeout
+ * @return[1] seconds
+ * @return[1] microseconds
+ */
 static int ctx_get_byte_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -252,6 +543,11 @@ static int ctx_get_byte_timeout(lua_State *L)
 	return 2;
 }
 
+/**
+ * @function ctx:set_response_timeout
+ * @param seconds (required)
+ * @param microseconds (optional, defaults to 0)
+ */
 static int ctx_set_response_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -268,6 +564,11 @@ static int ctx_set_response_timeout(lua_State *L)
 	return 0;
 }
 
+/**
+ * @function ctx:get_response_timeout
+ * @return[1] seconds
+ * @return[1] microseconds
+ */
 static int ctx_get_response_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -287,6 +588,10 @@ static int ctx_get_response_timeout(lua_State *L)
 	return 2;
 }
 
+/**
+ * @function ctx:get_socket
+ * @return the socket number
+ */
 static int ctx_get_socket(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -296,6 +601,10 @@ static int ctx_get_socket(lua_State *L)
 	return 1;
 }
 
+/**
+ * @function ctx:set_socket
+ * @param sock integer socket number to set
+ */
 static int ctx_set_socket(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -315,6 +624,10 @@ static int ctx_get_header_length(lua_State *L)
 	return 1;
 }
 
+/**
+ * @function ctx:set_slave
+ * @param unitid the unit address / slave id to use
+ */
 static int ctx_set_slave(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -363,11 +676,23 @@ static int _ctx_read_bits(lua_State *L, bool input)
 	return rcount;
 }
 
+/**
+ * @function ctx:read_input_bits
+ * @param address
+ * @param count
+ * @return an array of results
+ */
 static int ctx_read_input_bits(lua_State *L)
 {
 	return _ctx_read_bits(L, true);
 }
 
+/**
+ * @function ctx:read_bits
+ * @param address
+ * @param count
+ * @return an array of results
+ */
 static int ctx_read_bits(lua_State *L)
 {
 	return _ctx_read_bits(L, false);
@@ -410,16 +735,32 @@ static int _ctx_read_regs(lua_State *L, bool input)
 	return rcount;
 }
 
+/**
+ * @function ctx:read_input_registers
+ * @param address
+ * @param count
+ * @return an array of results
+ */
 static int ctx_read_input_registers(lua_State *L)
 {
 	return _ctx_read_regs(L, true);
 }
 
+/**
+ * @function ctx:read_registers
+ * @param address
+ * @param count
+ * @return an array of results
+ */
 static int ctx_read_registers(lua_State *L)
 {
 	return _ctx_read_regs(L, false);
 }
 
+/**
+ * @function ctx:report_slave_id
+ * @return a luastring with the raw result (lua strings can contain nulls)
+ */
 static int ctx_report_slave_id(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -439,6 +780,11 @@ static int ctx_report_slave_id(lua_State *L)
 	return 1;
 }
 
+/**
+ * @function ctx:write_bit
+ * @param address
+ * @param value either a number or a boolean
+ */
 static int ctx_write_bit(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -458,6 +804,11 @@ static int ctx_write_bit(lua_State *L)
 	return libmodbus_rc_to_nil_error(L, rc, 1);
 }
 
+/**
+ * @function ctx:write_register
+ * @param address
+ * @param value
+ */
 static int ctx_write_register(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -470,6 +821,11 @@ static int ctx_write_register(lua_State *L)
 }
 
 
+/**
+ * @function ctx:write_bits
+ * @param address
+ * @param value as a lua array table
+ */
 static int ctx_write_bits(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -524,37 +880,58 @@ static int ctx_write_bits(lua_State *L)
 }
 
 
+/**
+ * @function ctx:write_registers
+ * @param address
+ * @param value as a lua array table, or a sequence of values.
+ * @usage either
+ *  ctx:write_registers(0x2000, {1,2,3})
+ *  ctx:write_registers(0x2000, 1, 2, 3)
+ */
 static int ctx_write_registers(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
 	int addr = luaL_checknumber(L, 2);
 	int rc;
 	int rcount;
-	
-	/*
-	 * TODO - could allow just a series of arguments too? easier for
-	 * smaller sets? (more compatible with "write_register"?)
-	 */
-	luaL_checktype(L, 3, LUA_TTABLE);
-	/* array style table only! */
-	int count = lua_objlen(L, 3);
+	uint16_t *buf;
+	int count;
 
-	if (count > MODBUS_MAX_WRITE_REGISTERS) {
-		return luaL_argerror(L, 3, "requested too many registers");
-	}
+	if (lua_type(L, 3) == LUA_TTABLE) {
+		/* array style table only! */
+		count = lua_objlen(L, 3);
 
-	/* Convert table to uint16_t array */
-	uint16_t *buf = malloc(count * sizeof(uint16_t));
-	assert(buf);
-	for (int i = 1; i <= count; i++) {
-		lua_rawgeti(L, 3, i);
-		/* user beware! we're not range checking your values */
-		if (lua_type(L, -1) != LUA_TNUMBER) {
-			free(buf);
-			return luaL_argerror(L, 3, "table values must be numeric yo");
+		if (count > MODBUS_MAX_WRITE_REGISTERS) {
+			return luaL_argerror(L, 3, "requested too many registers");
 		}
-		buf[i-1] = lua_tonumber(L, -1);
-		lua_pop(L, 1);
+
+		/* Convert table to uint16_t array */
+		buf = malloc(count * sizeof(uint16_t));
+		assert(buf);
+		for (int i = 1; i <= count; i++) {
+			lua_rawgeti(L, 3, i);
+			/* user beware! we're not range checking your values */
+			if (lua_type(L, -1) != LUA_TNUMBER) {
+				free(buf);
+				return luaL_argerror(L, 3, "table values must be numeric yo");
+			}
+			/* This preserves sign and fractions better than tointeger() */
+			lua_Number n = lua_tonumber(L, -1);
+			buf[i-1] = (int16_t)n;
+			lua_pop(L, 1);
+		}
+	} else {
+		/* Assume sequence of values then... */
+		int total_args = lua_gettop(L);
+		if (total_args < 3) {
+			return luaL_argerror(L, 3, "No values provided to write!");
+		}
+		count = total_args - 2;
+		buf = malloc(count * sizeof(uint16_t));
+		assert(buf);
+		for (int i = 0; i < count; i++) {
+			buf[i] = (int16_t)lua_tonumber(L, i + 3);
+		}
 	}
 	rc = modbus_write_registers(ctx->modbus, addr, count, buf);
 	if (rc == count) {
@@ -751,6 +1128,20 @@ static const struct luaL_Reg R[] = {
 	{"new_rtu",	libmodbus_new_rtu},
 	{"new_tcp_pi",	libmodbus_new_tcp_pi},
 	{"version",	libmodbus_version},
+
+	{"set_s32",	helper_set_s32},
+	{"set_f32",	helper_set_f32},
+
+	{"get_s16",	helper_get_s16},
+	{"get_s32",	helper_get_s32},
+	{"get_s32le",	helper_get_s32le},
+	{"get_u32",	helper_get_u32},
+	{"get_u32le",	helper_get_u32le},
+	{"get_f32",	helper_get_f32},
+	{"get_f32le",	helper_get_f32le},
+	{"get_s64",	helper_get_s64},
+	{"get_u64",	helper_get_u64},
+	/* {"get_u16",	helper_get_u16}, Not normally useful, just use the number as it was returned */
 	
 	{NULL, NULL}
 };
@@ -780,6 +1171,7 @@ static const struct luaL_Reg ctx_M[] = {
 	{"write_registers",	ctx_write_registers},
 	{"send_raw_request",	ctx_send_raw_request},
 	{"__gc",		ctx_destroy},
+	{"__tostring",		ctx_tostring},
 	
 	// FIXME - should really add these funcs only to contexts with tcp_pi!
 	{"tcp_pi_listen",	ctx_tcp_pi_listen},
