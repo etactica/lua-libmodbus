@@ -1,3 +1,6 @@
+0.5 2019 August
+Fix compilation under windows/mingw
+
 0.4.2: 2018 November
 Fix bad free when closing RTU contexts. #5
 Fix compat with lua 5.3 when backwards compat is turned off #6
