@@ -34,6 +34,10 @@
 #include <assert.h>
 #include <sys/time.h>
 
+#if defined(WIN32)
+#include <winsock2.h>
+#endif
+
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
