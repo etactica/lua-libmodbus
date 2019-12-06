@@ -619,6 +619,33 @@ static int ctx_set_socket(lua_State *L)
 	return 0;
 }
 
+/**
+ * @function ctx:rtu_get_serial_mode
+ * @return the serial mode
+ */
+static int ctx_rtu_get_serial_mode(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+
+	lua_pushinteger(L, modbus_rtu_get_serial_mode(ctx->modbus));
+
+	return 1;
+}
+
+/**
+ * @function ctx:rtu_set_serial_mode
+ * @param mode the selected serial mode
+ */
+static int ctx_rtu_set_serial_mode(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	int mode = luaL_checknumber(L, 2);
+
+	int rc = modbus_rtu_set_serial_mode(ctx->modbus, mode);
+
+	return libmodbus_rc_to_nil_error(L, rc, 0);
+}
+
 static int ctx_get_header_length(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -1163,6 +1190,8 @@ static const struct luaL_Reg ctx_M[] = {
 	{"read_input_registers",ctx_read_input_registers},
 	{"read_registers",	ctx_read_registers},
 	{"report_slave_id",	ctx_report_slave_id},
+	{"rtu_get_serial_mode",	ctx_rtu_get_serial_mode},
+	{"rtu_set_serial_mode",	ctx_rtu_set_serial_mode},
 	{"set_debug",		ctx_set_debug},
 	{"set_byte_timeout",	ctx_set_byte_timeout},
 	{"set_error_recovery",	ctx_set_error_recovery},
