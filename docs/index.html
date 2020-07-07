@@ -31,6 +31,7 @@
 <ul>
 <li><a href="#Functions">Functions</a></li>
 <li><a href="#Context_Methods">Context Methods </a></li>
+<li><a href="#Constants_provided_for_use">Constants provided for use </a></li>
 </ul>
 
 
@@ -38,9 +39,14 @@
 <ul class="nowrap">
   <li><strong>libmodbus</strong></li>
 </ul>
+<h2>Examples</h2>
+<ul class="nowrap">
+  <li><a href="examples/demo.lua.html">demo.lua</a></li>
+</ul>
 <h2>Source</h2>
 <ul class="nowrap">
   <li><a href="source/lua-libmodbus.c.html">lua-libmodbus.c</a></li>
+  <li><a href="source/demo.lua.html">demo.lua</a></li>
 </ul>
 
 </div>
@@ -48,12 +54,16 @@
 <div id="content">
 
 <h1>Module <code>libmodbus</code></h1>
-<p>lua bindings to libmodbus</p>
-<p></p>
+<p>lua bindings to libmodbus.</p>
+<p>
+<p>Generally, this provides a very thin layer over libmodbus.  Instead of
+passing the context around to all your modbus_xxx functions, you simply
+call them as member functions on the context returned by the new() functions.
+</p>
     <h3>Info:</h3>
     <ul>
-        <li><strong>Author</strong>:  Karl Palsson <karlp@remake.is> 2016
-<p>  Permission is hereby granted, free of charge, to any person obtaining
+        <li><strong>License</strong>:
+  Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
   "Software"), to deal in the Software without restriction, including
   without limitation the rights to use, copy, modify, merge, publish,
@@ -69,6 +79,7 @@
   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</li>
+        <li><strong>Author</strong>: Karl Palsson <karlp@etactica.com> 2016-2020</li>
     </ul>
 
 
@@ -76,7 +87,7 @@
 <table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#version">version ()</a></td>
-	<td class="summary">Returns the runtime linked version of libmodbus as a string</td>
+	<td class="summary">Returns the runtime linked version of libmodbus as a string.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#new_rtu">new_rtu (device, baud, parity, databits, stopbits)</a></td>
@@ -147,9 +158,7 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#ctx:set_error_recovery">ctx:set_error_recovery (a, b)</a></td>
-	<td class="summary">Set error recovery, see modbus_set_error_recovery
- FIXME get autodocs for the defined constants
- arguments will be or'd together</td>
+	<td class="summary">Set error recovery, see modbus_set_error_recovery.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#ctx:set_byte_timeout">ctx:set_byte_timeout (seconds, microseconds)</a></td>
@@ -174,6 +183,14 @@
 	<tr>
 	<td class="name" nowrap><a href="#ctx:set_socket">ctx:set_socket (sock)</a></td>
 	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:rtu_get_serial_mode">ctx:rtu_get_serial_mode ()</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:rtu_set_serial_mode">ctx:rtu_set_serial_mode (mode)</a></td>
+	<td class="summary">Sets the mode of a serial port.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#ctx:set_slave">ctx:set_slave (unitid)</a></td>
@@ -216,6 +233,26 @@
 	<td class="summary"></td>
 	</tr>
 </table>
+<h2><a href="#Constants_provided_for_use">Constants provided for use </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#rtu_constants">rtu_constants</a></td>
+	<td class="summary">RTU Mode Constants</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#error_recovery_constants">error_recovery_constants</a></td>
+	<td class="summary">Error Recovery Constants</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#exception_codes">exception_codes</a></td>
+	<td class="summary">Exception codes
+ These are all MODBUS_xxxx upstream in libmodbus.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#other_constants">other_constants</a></td>
+	<td class="summary">Other constants</td>
+	</tr>
+</table>
 
 <br/>
 <br/>
@@ -227,10 +264,11 @@
     <dt>
     <a name = "version"></a>
     <strong>version ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#73">line 73</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#80">line 80</a>
     </dt>
     <dd>
-    Returns the runtime linked version of libmodbus as a string
+    Returns the runtime linked version of libmodbus as a string.
+ The compile time version is available as a constant VERSION.
 
 
 
@@ -241,13 +279,17 @@
     </ol>
 
 
+    <h3>See also:</h3>
+    <ul>
+         <a href="index.html#other_constants">other_constants</a>
+    </ul>
 
 
 </dd>
     <dt>
     <a name = "new_rtu"></a>
     <strong>new_rtu (device, baud, parity, databits, stopbits)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#93">line 93</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#100">line 100</a>
     </dt>
     <dd>
     Create a Modbus/RTU context
@@ -285,7 +327,7 @@
     <dt>
     <a name = "new_tcp_pi"></a>
     <strong>new_tcp_pi (host, service)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#154">line 154</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#164">line 164</a>
     </dt>
     <dd>
     Create a Modbus/TCP context
@@ -314,7 +356,7 @@
     <dt>
     <a name = "set_s32"></a>
     <strong>set_s32 (num)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#189">line 189</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#199">line 199</a>
     </dt>
     <dd>
     Write a 32bit (u)int to 2x16bit registers
@@ -342,7 +384,7 @@
     <dt>
     <a name = "set_f32"></a>
     <strong>set_f32 (num)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#204">line 204</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#214">line 214</a>
     </dt>
     <dd>
     Write a bit float to 2x16bit registers
@@ -370,7 +412,7 @@
     <dt>
     <a name = "get_s16"></a>
     <strong>get_s16 (1)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#222">line 222</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#232">line 232</a>
     </dt>
     <dd>
     16bit register as number to signed 16bit
@@ -396,7 +438,7 @@
     <dt>
     <a name = "get_s32"></a>
     <strong>get_s32 (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#236">line 236</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#246">line 246</a>
     </dt>
     <dd>
     2x16bit registers as number to signed 32 bit
@@ -425,7 +467,7 @@
     <dt>
     <a name = "get_s32le"></a>
     <strong>get_s32le (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#252">line 252</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#262">line 262</a>
     </dt>
     <dd>
     2x16bit registers as number to signed 32 bit (reverse order)
@@ -454,7 +496,7 @@
     <dt>
     <a name = "get_u32"></a>
     <strong>get_u32 (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#269">line 269</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#279">line 279</a>
     </dt>
     <dd>
     2x16bit registers as number to unsigned 32 bit
@@ -483,7 +525,7 @@
     <dt>
     <a name = "get_u32le"></a>
     <strong>get_u32le (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#285">line 285</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#295">line 295</a>
     </dt>
     <dd>
     2x16bit registers as number to unsigned 32 bit (reversed order)
@@ -512,7 +554,7 @@
     <dt>
     <a name = "get_f32"></a>
     <strong>get_f32 (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#301">line 301</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#311">line 311</a>
     </dt>
     <dd>
     2x16bit registers as number to 32 bit float
@@ -541,7 +583,7 @@
     <dt>
     <a name = "get_f32le"></a>
     <strong>get_f32le (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#321">line 321</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#331">line 331</a>
     </dt>
     <dd>
     2x16bit registers as number to 32 bit float (Reversed order)
@@ -570,7 +612,7 @@
     <dt>
     <a name = "get_s64"></a>
     <strong>get_s64 (1, 2, 3, 4)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#343">line 343</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#353">line 353</a>
     </dt>
     <dd>
     4x16bit registers as number to signed 64 bit
@@ -605,7 +647,7 @@
     <dt>
     <a name = "get_u64"></a>
     <strong>get_u64 (1, 2, 3, 4)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#366">line 366</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#376">line 376</a>
     </dt>
     <dd>
     4x16bit registers as number to unsigned 64 bit
@@ -648,7 +690,7 @@
     <dt>
     <a name = "ctx:connect"></a>
     <strong>ctx:connect ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#424">line 424</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#434">line 434</a>
     </dt>
     <dd>
     Connect, see modbus_connect()
@@ -663,7 +705,7 @@
     <dt>
     <a name = "ctx:close"></a>
     <strong>ctx:close ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#437">line 437</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#447">line 447</a>
     </dt>
     <dd>
     Close, see modbus_close()
@@ -678,7 +720,7 @@
     <dt>
     <a name = "ctx:set_debug"></a>
     <strong>ctx:set_debug (enable)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#451">line 451</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#461">line 461</a>
     </dt>
     <dd>
     Set debug
@@ -699,21 +741,20 @@
     <dt>
     <a name = "ctx:set_error_recovery"></a>
     <strong>ctx:set_error_recovery (a, b)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#472">line 472</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#481">line 481</a>
     </dt>
     <dd>
-    Set error recovery, see modbus_set_error_recovery
- FIXME get autodocs for the defined constants
- arguments will be or'd together
+    Set error recovery, see modbus_set_error_recovery.
+ The arguments will be or'd together.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">a</span>
-         either ERROR_RECOVERY_NONE or ERROR_RECOVERY_LINK or ERROR_RECOVERY_PROTOCOL
+         one of <a href="index.html#error_recovery_constants">error_recovery_constants</a>
         </li>
         <li><span class="parameter">b</span>
-         as a
+         one of <a href="index.html#error_recovery_constants">error_recovery_constants</a>
         </li>
     </ul>
 
@@ -725,7 +766,7 @@
     <dt>
     <a name = "ctx:set_byte_timeout"></a>
     <strong>ctx:set_byte_timeout (seconds, microseconds)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#489">line 489</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#498">line 498</a>
     </dt>
     <dd>
     See also modbus_set_byte_timeout
@@ -749,7 +790,7 @@
     <dt>
     <a name = "ctx:get_byte_timeout"></a>
     <strong>ctx:get_byte_timeout ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#507">line 507</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#516">line 516</a>
     </dt>
     <dd>
 
@@ -771,7 +812,7 @@
     <dt>
     <a name = "ctx:set_response_timeout"></a>
     <strong>ctx:set_response_timeout (seconds, microseconds)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#528">line 528</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#537">line 537</a>
     </dt>
     <dd>
 
@@ -795,7 +836,7 @@
     <dt>
     <a name = "ctx:get_response_timeout"></a>
     <strong>ctx:get_response_timeout ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#546">line 546</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#555">line 555</a>
     </dt>
     <dd>
 
@@ -817,7 +858,7 @@
     <dt>
     <a name = "ctx:get_socket"></a>
     <strong>ctx:get_socket ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#566">line 566</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#575">line 575</a>
     </dt>
     <dd>
 
@@ -837,7 +878,7 @@
     <dt>
     <a name = "ctx:set_socket"></a>
     <strong>ctx:set_socket (sock)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#579">line 579</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#588">line 588</a>
     </dt>
     <dd>
 
@@ -856,9 +897,52 @@
 
 </dd>
     <dt>
+    <a name = "ctx:rtu_get_serial_mode"></a>
+    <strong>ctx:rtu_get_serial_mode ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#602">line 602</a>
+    </dt>
+    <dd>
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        <a href="index.html#rtu_constants">rtu_constants</a> the serial mode, either RTU_RS232 or RTU_RS485
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:rtu_set_serial_mode"></a>
+    <strong>ctx:rtu_set_serial_mode (mode)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#618">line 618</a>
+    </dt>
+    <dd>
+    Sets the mode of a serial port.
+ Remember, this is only required if your kernel is handling rs485 natively.
+ If you are using a USB adapter, you do NOT need this.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mode</span>
+         The selected serial mode from <a href="index.html#rtu_constants">rtu_constants</a>, either RTU_RS232 or RTU_RS485.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "ctx:set_slave"></a>
     <strong>ctx:set_slave (unitid)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#602">line 602</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#641">line 641</a>
     </dt>
     <dd>
 
@@ -879,7 +963,7 @@
     <dt>
     <a name = "ctx:read_input_bits"></a>
     <strong>ctx:read_input_bits (address, count)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#656">line 656</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#695">line 695</a>
     </dt>
     <dd>
 
@@ -908,7 +992,7 @@
     <dt>
     <a name = "ctx:read_bits"></a>
     <strong>ctx:read_bits (address, count)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#667">line 667</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#706">line 706</a>
     </dt>
     <dd>
 
@@ -937,7 +1021,7 @@
     <dt>
     <a name = "ctx:read_input_registers"></a>
     <strong>ctx:read_input_registers (address, count)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#715">line 715</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#754">line 754</a>
     </dt>
     <dd>
 
@@ -966,7 +1050,7 @@
     <dt>
     <a name = "ctx:read_registers"></a>
     <strong>ctx:read_registers (address, count)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#726">line 726</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#765">line 765</a>
     </dt>
     <dd>
 
@@ -995,7 +1079,7 @@
     <dt>
     <a name = "ctx:report_slave_id"></a>
     <strong>ctx:report_slave_id ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#735">line 735</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#774">line 774</a>
     </dt>
     <dd>
 
@@ -1015,7 +1099,7 @@
     <dt>
     <a name = "ctx:write_bit"></a>
     <strong>ctx:write_bit (address, value)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#756">line 756</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#795">line 795</a>
     </dt>
     <dd>
 
@@ -1039,7 +1123,7 @@
     <dt>
     <a name = "ctx:write_register"></a>
     <strong>ctx:write_register (address, value)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#780">line 780</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#819">line 819</a>
     </dt>
     <dd>
 
@@ -1063,7 +1147,7 @@
     <dt>
     <a name = "ctx:write_bits"></a>
     <strong>ctx:write_bits (address, value)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#797">line 797</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#836">line 836</a>
     </dt>
     <dd>
 
@@ -1087,7 +1171,7 @@
     <dt>
     <a name = "ctx:write_registers"></a>
     <strong>ctx:write_registers (address, value)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#859">line 859</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#898">line 898</a>
     </dt>
     <dd>
 
@@ -1115,13 +1199,157 @@
 
 </dd>
 </dl>
+    <h2 class="section-header has-description"><a name="Constants_provided_for_use"></a>Constants provided for use </h2>
+
+          <div class="section-description">
+
+ Constants used in various functions, either as arguments or returns
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "rtu_constants"></a>
+    <strong>rtu_constants</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#1112">line 1112</a>
+    </dt>
+    <dd>
+    RTU Mode Constants
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">RTU_RS232</span>
+
+        </li>
+        <li><span class="parameter">RTU_RS485</span>
+
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="index.html#ctx:rtu_get_serial_mode">rtu_get_serial_mode</a></li>
+         <li><a href="index.html#ctx:rtu_set_serial_mode">rtu_set_serial_mode</a></li>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "error_recovery_constants"></a>
+    <strong>error_recovery_constants</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#1127">line 1127</a>
+    </dt>
+    <dd>
+    Error Recovery Constants
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">ERROR_RECOVERY_NONE</span>
+
+        </li>
+        <li><span class="parameter">ERROR_RECOVERY_LINK</span>
+
+        </li>
+        <li><span class="parameter">ERROR_RECOVERY_PROTOCOL</span>
+
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="index.html#ctx:set_error_recovery">set_error_recovery</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "exception_codes"></a>
+    <strong>exception_codes</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#1128">line 1128</a>
+    </dt>
+    <dd>
+    Exception codes
+ These are all MODBUS_xxxx upstream in libmodbus.
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">EXCEPTION_ILLEGAL_FUNCTION</span>
+
+        </li>
+        <li><span class="parameter">EXCEPTION_ILLEGAL_DATA_ADDRESS</span>
+
+        </li>
+        <li><span class="parameter">EXCEPTION_ILLEGAL_DATA_VALUE</span>
+
+        </li>
+        <li><span class="parameter">EXCEPTION_SLAVE_OR_SERVER_FAILURE</span>
+
+        </li>
+        <li><span class="parameter">EXCEPTION_ACKNOWLEDGE</span>
+
+        </li>
+        <li><span class="parameter">EXCEPTION_SLAVE_OR_SERVER_BUSY</span>
+
+        </li>
+        <li><span class="parameter">EXCEPTION_NEGATIVE_ACKNOWLEDGE</span>
+
+        </li>
+        <li><span class="parameter">EXCEPTION_MEMORY_PARITY</span>
+
+        </li>
+        <li><span class="parameter">EXCEPTION_NOT_DEFINED</span>
+
+        </li>
+        <li><span class="parameter">EXCEPTION_GATEWAY_PATH</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "other_constants"></a>
+    <strong>other_constants</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#1156">line 1156</a>
+    </dt>
+    <dd>
+    Other constants
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">VERSION_STRING</span>
+         the <em>compile time</em> version, see also <a href="index.html#version">version</a>
+        </li>
+        <li><span class="parameter">BROADCAST_ADDRESS</span>
+         used in <a href="index.html#ctx:set_slave">set_slave</a>
+        </li>
+        <li><span class="parameter">TCP_SLAVE</span>
+         used in <a href="index.html#ctx:set_slave">set_slave</a>
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
 
 
 </div> <!-- id="content" -->
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2018-06-14 11:58:15 </i>
+<i style="float:right;">Last updated 2020-07-07 13:24:53 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

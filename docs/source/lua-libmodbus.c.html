@@ -32,10 +32,15 @@
 <h2>Source</h2>
 <ul class="nowrap">
   <li><strong>lua-libmodbus.c</strong></li>
+  <li><a href="../source/demo.lua.html">demo.lua</a></li>
 </ul>
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../index.html">libmodbus</a></li>
+</ul>
+<h2>Examples</h2>
+<ul class="nowrap">
+  <li><a href="../examples/demo.lua.html">demo.lua</a></li>
 </ul>
 
 </div>
@@ -44,11 +49,15 @@
 
     <h2>lua-libmodbus.c</h2>
 <pre>
-<span class="comment">/*** lua bindings to libmodbus
+<span class="comment">/*** lua bindings to libmodbus.
+&lt;p&gt;Generally, this provides a very thin layer over libmodbus.  Instead of
+passing the context around to all your modbus_xxx functions, you simply
+call them as member functions on the context returned by the new() functions.
 
 @module libmodbus
-@author Karl Palsson &lt;karlp@remake.is&gt; 2016
+@author Karl Palsson &lt;karlp@etactica.com&gt; 2016-2020
 
+@license
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
   "Software"), to deal in the Software without restriction, including
@@ -79,6 +88,10 @@
 #include &lt;errno.h&gt;
 #include &lt;assert.h&gt;
 #include &lt;sys/time.h&gt;
+
+#if defined(WIN32)
+#include &lt;winsock2.h&gt;
+#endif
 
 #include &lt;lua.h&gt;
 #include &lt;lualib.h&gt;
@@ -126,10 +139,12 @@
 }
 
 <span class="comment">/**
- * Returns the runtime linked version of libmodbus as a string
+ * Returns the runtime linked version of libmodbus as a string.
+ * The compile time version is available as a constant VERSION.
  * @function version
  * @return eg "3.0.6"
- */</span><a id="73"></a>
+ * @see other_constants
+ */</span><a id="80"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> libmodbus_version(lua_State *L)
 {
 	<span class="keyword">char</span> version[<span class="number">16</span>];
@@ -149,7 +164,7 @@
  * @param databits defaults to 8
  * @param stopbits defaults to 1
  * @return a modbus context ready for use
- */</span><a id="93"></a>
+ */</span><a id="100"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> libmodbus_new_rtu(lua_State *L)
 {
 	<span class="keyword">const</span> <span class="keyword">char</span> *device = luaL_checkstring(L, <span class="number">1</span>);
@@ -196,6 +211,9 @@
 	ctx-&gt;parity = parity;
 	ctx-&gt;stopbits = stopbits;
 
+	<span class="comment">/* Make sure unused fields are zeroed */</span>
+	ctx-&gt;service = NULL;
+
 	luaL_getmetatable(L, MODBUS_META_CTX);
 	<span class="comment">// Can I put more functions in for rtu here? maybe?
 </span>	lua_setmetatable(L, -<span class="number">2</span>);
@@ -210,7 +228,7 @@
  * @param host eg "192.168.1.100" or "modbus.example.org"
  * @param service eg "502" or "mbap"
  * @return a modbus context ready for use
- */</span><a id="154"></a>
+ */</span><a id="164"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> libmodbus_new_tcp_pi(lua_State *L)
 {
 	<span class="keyword">const</span> <span class="keyword">char</span> *host = luaL_checkstring(L, <span class="number">1</span>);
@@ -245,7 +263,7 @@
  * @param num 32bit number
  * @return reg1 upper 16bits
  * @return reg2 lower 16bits
- */</span><a id="189"></a>
+ */</span><a id="199"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_set_s32(lua_State *L)
 {
 	<span class="comment">/* truncate as necessary */</span>
@@ -260,7 +278,7 @@
  * @param num floating point number
  * @return reg1 upper 16bits of a 32bit float
  * @return reg2 lower 16bits of a 32bit float
- */</span><a id="204"></a>
+ */</span><a id="214"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_set_f32(lua_State *L)
 {
 	<span class="comment">/* truncate to float if necessary */</span>
@@ -278,7 +296,7 @@
  * @function get_s16
  * @param 1 16bit register
  * @return signed 16bit number
- */</span><a id="222"></a>
+ */</span><a id="232"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_get_s16(lua_State *L)
 {
 	<span class="keyword">const</span> int16_t in = luaL_checknumber(L, <span class="number">1</span>);
@@ -292,7 +310,7 @@
  * @param 1 16bit register
  * @param 2 16bit register
  * @return 32bit number
- */</span><a id="236"></a>
+ */</span><a id="246"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_get_s32(lua_State *L)
 {
 	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
@@ -308,7 +326,7 @@
  * @param 1 16bit register
  * @param 2 16bit register
  * @return 32bit number
- */</span><a id="252"></a>
+ */</span><a id="262"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_get_s32le(lua_State *L)
 {
 	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">1</span>);
@@ -325,7 +343,7 @@
  * @param 1 16bit register
  * @param 2 16bit register
  * @return 32bit number
- */</span><a id="269"></a>
+ */</span><a id="279"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_get_u32(lua_State *L)
 {
 	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
@@ -341,7 +359,7 @@
  * @param 1 16bit register
  * @param 2 16bit register
  * @return 32bit number
- */</span><a id="285"></a>
+ */</span><a id="295"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_get_u32le(lua_State *L)
 {
 	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">1</span>);
@@ -357,7 +375,7 @@
  * @param 1 16bit register
  * @param 2 16bit register
  * @return 32bit float
- */</span><a id="301"></a>
+ */</span><a id="311"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_get_f32(lua_State *L)
 {
 	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
@@ -377,7 +395,7 @@
  * @param 1 16bit register
  * @param 2 16bit register
  * @return 32bit float
- */</span><a id="321"></a>
+ */</span><a id="331"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_get_f32le(lua_State *L)
 {
 	<span class="keyword">const</span> uint16_t in2 = luaL_checknumber(L, <span class="number">1</span>);
@@ -399,7 +417,7 @@
  * @param 3 16bit register
  * @param 4 16bit register
  * @return 64bit number
- */</span><a id="343"></a>
+ */</span><a id="353"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_get_s64(lua_State *L)
 {
 	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
@@ -422,7 +440,7 @@
  * @param 3 16bit register
  * @param 4 16bit register
  * @return 64bit number
- */</span><a id="366"></a>
+ */</span><a id="376"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> helper_get_u64(lua_State *L)
 {
 	<span class="keyword">const</span> uint16_t in1 = luaL_checknumber(L, <span class="number">1</span>);
@@ -480,7 +498,7 @@
 <span class="comment">/**
  * Connect, see modbus_connect()
  * @function ctx:connect
- */</span><a id="424"></a>
+ */</span><a id="434"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_connect(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -493,7 +511,7 @@
 <span class="comment">/**
  * Close, see modbus_close()
  * @function ctx:close
- */</span><a id="437"></a>
+ */</span><a id="447"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_close(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -507,7 +525,7 @@
  * Set debug
  * @function ctx:set_debug
  * @param enable optional bool, defaults to true
- */</span><a id="451"></a>
+ */</span><a id="461"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_set_debug(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -522,13 +540,12 @@
 }
 
 <span class="comment">/**
- * Set error recovery, see modbus_set_error_recovery
- * FIXME get autodocs for the defined constants
- * arguments will be or'd together
+ * Set error recovery, see modbus_set_error_recovery.
+ * The arguments will be or'd together.
  * @function ctx:set_error_recovery
- * @param a either ERROR_RECOVERY_NONE or ERROR_RECOVERY_LINK or ERROR_RECOVERY_PROTOCOL
- * @param b as a
- */</span><a id="472"></a>
+ * @param a one of <a href="../index.html#error_recovery_constants">error_recovery_constants</a>
+ * @param b one of <a href="../index.html#error_recovery_constants">error_recovery_constants</a>
+ */</span><a id="481"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_set_error_recovery(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -545,7 +562,7 @@
  * @function ctx:set_byte_timeout
  * @param seconds (required)
  * @param microseconds (optional, defaults to 0)
- */</span><a id="489"></a>
+ */</span><a id="498"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_set_byte_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -566,7 +583,7 @@
  * @function ctx:get_byte_timeout
  * @return[1] seconds
  * @return[1] microseconds
- */</span><a id="507"></a>
+ */</span><a id="516"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_get_byte_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -590,7 +607,7 @@
  * @function ctx:set_response_timeout
  * @param seconds (required)
  * @param microseconds (optional, defaults to 0)
- */</span><a id="528"></a>
+ */</span><a id="537"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_set_response_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -611,7 +628,7 @@
  * @function ctx:get_response_timeout
  * @return[1] seconds
  * @return[1] microseconds
- */</span><a id="546"></a>
+ */</span><a id="555"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_get_response_timeout(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -634,7 +651,7 @@
 <span class="comment">/**
  * @function ctx:get_socket
  * @return the socket number
- */</span><a id="566"></a>
+ */</span><a id="575"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_get_socket(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -647,7 +664,7 @@
 <span class="comment">/**
  * @function ctx:set_socket
  * @param sock integer socket number to set
- */</span><a id="579"></a>
+ */</span><a id="588"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_set_socket(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -656,6 +673,36 @@
 	modbus_set_socket(ctx-&gt;modbus, newfd);
 
 	<span class="keyword">return</span> <span class="number">0</span>;
+}
+
+<span class="comment">/**
+ * @function ctx:rtu_get_serial_mode
+ * @return <a href="../index.html#rtu_constants">rtu_constants</a> the serial mode, either RTU_RS232 or RTU_RS485
+ */</span><a id="602"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_rtu_get_serial_mode(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+
+	lua_pushinteger(L, modbus_rtu_get_serial_mode(ctx-&gt;modbus));
+
+	<span class="keyword">return</span> <span class="number">1</span>;
+}
+
+<span class="comment">/**
+ * Sets the mode of a serial port.
+ * Remember, this is only required if your kernel is handling rs485 natively.
+ * If you are using a USB adapter, you do NOT need this.
+ * @function ctx:rtu_set_serial_mode
+ * @param mode The selected serial mode from <a href="../index.html#rtu_constants">rtu_constants</a>, either RTU_RS232 or RTU_RS485.
+ */</span><a id="618"></a>
+<span class="keyword">static</span> <span class="keyword">int</span> ctx_rtu_set_serial_mode(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
+	<span class="keyword">int</span> mode = luaL_checknumber(L, <span class="number">2</span>);
+
+	<span class="keyword">int</span> rc = modbus_rtu_set_serial_mode(ctx-&gt;modbus, mode);
+
+	<span class="keyword">return</span> libmodbus_rc_to_nil_error(L, rc, <span class="number">0</span>);
 }
 
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_get_header_length(lua_State *L)
@@ -670,7 +717,7 @@
 <span class="comment">/**
  * @function ctx:set_slave
  * @param unitid the unit address / slave id to use
- */</span><a id="602"></a>
+ */</span><a id="641"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_set_slave(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -724,7 +771,7 @@
  * @param address
  * @param count
  * @return an array of results
- */</span><a id="656"></a>
+ */</span><a id="695"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_read_input_bits(lua_State *L)
 {
 	<span class="keyword">return</span> _ctx_read_bits(L, <span class="keyword">true</span>);
@@ -735,7 +782,7 @@
  * @param address
  * @param count
  * @return an array of results
- */</span><a id="667"></a>
+ */</span><a id="706"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_read_bits(lua_State *L)
 {
 	<span class="keyword">return</span> _ctx_read_bits(L, <span class="keyword">false</span>);
@@ -783,7 +830,7 @@
  * @param address
  * @param count
  * @return an array of results
- */</span><a id="715"></a>
+ */</span><a id="754"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_read_input_registers(lua_State *L)
 {
 	<span class="keyword">return</span> _ctx_read_regs(L, <span class="keyword">true</span>);
@@ -794,7 +841,7 @@
  * @param address
  * @param count
  * @return an array of results
- */</span><a id="726"></a>
+ */</span><a id="765"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_read_registers(lua_State *L)
 {
 	<span class="keyword">return</span> _ctx_read_regs(L, <span class="keyword">false</span>);
@@ -803,7 +850,7 @@
 <span class="comment">/**
  * @function ctx:report_slave_id
  * @return a luastring with the raw result (lua strings can contain nulls)
- */</span><a id="735"></a>
+ */</span><a id="774"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_report_slave_id(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -827,7 +874,7 @@
  * @function ctx:write_bit
  * @param address
  * @param value either a number or a boolean
- */</span><a id="756"></a>
+ */</span><a id="795"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_write_bit(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -851,7 +898,7 @@
  * @function ctx:write_register
  * @param address
  * @param value
- */</span><a id="780"></a>
+ */</span><a id="819"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_write_register(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -868,7 +915,7 @@
  * @function ctx:write_bits
  * @param address
  * @param value as a lua array table
- */</span><a id="797"></a>
+ */</span><a id="836"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_write_bits(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -882,7 +929,7 @@
 	 */</span>
 	luaL_checktype(L, <span class="number">3</span>, LUA_TTABLE);
 	<span class="comment">/* array style table only! */</span>
-	<span class="keyword">int</span> count = lua_objlen(L, <span class="number">3</span>);
+	<span class="keyword">int</span> count = lua_rawlen(L, <span class="number">3</span>);
 
 	<span class="keyword">if</span> (count &gt; MODBUS_MAX_WRITE_BITS) {
 		<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"requested too many bits"</span>);
@@ -930,7 +977,7 @@
  * @usage either
  *  ctx:write_registers(0x2000, {1,2,3})
  *  ctx:write_registers(0x2000, 1, 2, 3)
- */</span><a id="859"></a>
+ */</span><a id="898"></a>
 <span class="keyword">static</span> <span class="keyword">int</span> ctx_write_registers(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
@@ -942,7 +989,7 @@
 
 	<span class="keyword">if</span> (lua_type(L, <span class="number">3</span>) == LUA_TTABLE) {
 		<span class="comment">/* array style table only! */</span>
-		count = lua_objlen(L, <span class="number">3</span>);
+		count = lua_rawlen(L, <span class="number">3</span>);
 
 		<span class="keyword">if</span> (count &gt; MODBUS_MAX_WRITE_REGISTERS) {
 			<span class="keyword">return</span> luaL_argerror(L, <span class="number">3</span>, <span class="string">"requested too many registers"</span>);
@@ -993,12 +1040,12 @@
 	ctx_t *ctx = ctx_check(L, <span class="number">1</span>);
 	<span class="keyword">int</span> rc;
 	<span class="keyword">int</span> rcount;
-	<span class="keyword">int</span> count = lua_objlen(L, <span class="number">2</span>);
+	<span class="keyword">int</span> count = lua_rawlen(L, <span class="number">2</span>);
 	luaL_checktype(L, <span class="number">2</span>, LUA_TTABLE);
 	<span class="comment">/* array style table only! */</span>
 
 	<span class="comment">/* Convert table to uint8_t array */</span>
-	uint8_t *buf = malloc(lua_objlen(L, <span class="number">2</span>) * <span class="keyword">sizeof</span>(uint8_t));
+	uint8_t *buf = malloc(lua_rawlen(L, <span class="number">2</span>) * <span class="keyword">sizeof</span>(uint8_t));
 	<span class="global">assert</span>(buf);
 	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= count; i++) {
 		lua_rawgeti(L, <span class="number">2</span>, i);
@@ -1125,6 +1172,42 @@
         <span class="keyword">const</span> <span class="keyword">char</span>* value;
 };
 
+<span class="comment">/** Constants provided for use.
+ * Constants used in various functions, either as arguments or returns
+ * @section constants
+ */</span>
+
+<span class="comment">/**
+ * RTU Mode Constants
+ * @see rtu_get_serial_mode
+ * @see rtu_set_serial_mode
+ * @table rtu_constants
+ * @field RTU_RS232
+ * @field RTU_RS485
+ */</span>
+
+<a id="1112"></a><span class="comment">/** Error Recovery Constants
+ * @see set_error_recovery
+ * @table error_recovery_constants
+ * @field ERROR_RECOVERY_NONE
+ * @field ERROR_RECOVERY_LINK
+ * @field ERROR_RECOVERY_PROTOCOL
+ */</span>
+
+<a id="1127"></a><span class="comment">/** Exception codes
+ * These are all MODBUS_xxxx upstream in libmodbus.
+ * @table exception_codes
+ * @field EXCEPTION_ILLEGAL_FUNCTION
+ * @field EXCEPTION_ILLEGAL_DATA_ADDRESS
+ * @field EXCEPTION_ILLEGAL_DATA_VALUE
+ * @field EXCEPTION_SLAVE_OR_SERVER_FAILURE
+ * @field EXCEPTION_ACKNOWLEDGE
+ * @field EXCEPTION_SLAVE_OR_SERVER_BUSY
+ * @field EXCEPTION_NEGATIVE_ACKNOWLEDGE
+ * @field EXCEPTION_MEMORY_PARITY
+ * @field EXCEPTION_NOT_DEFINED
+ * @field EXCEPTION_GATEWAY_PATH
+ */</span><a id="1128"></a>
 <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">struct</span> definei D[] = {
         {<span class="string">"RTU_RS232"</span>, MODBUS_RTU_RS232},
         {<span class="string">"RTU_RS485"</span>, MODBUS_RTU_RS485},
@@ -1147,6 +1230,12 @@
         {NULL, <span class="number">0</span>}
 };
 
+<span class="comment">/** Other constants
+ * @table other_constants
+ * @field VERSION_STRING the &lt;em&gt;compile time&lt;/em&gt; version, see also <a href="../index.html#version">version</a>
+ * @field BROADCAST_ADDRESS used in <a href="../index.html#ctx:set_slave">set_slave</a>
+ * @field TCP_SLAVE used in <a href="../index.html#ctx:set_slave">set_slave</a>
+ */</span><a id="1156"></a>
 <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">struct</span> defines S[] = {
 	{<span class="string">"VERSION_STRING"</span>, LIBMODBUS_VERSION_STRING},
         {NULL, NULL}
@@ -1202,6 +1291,8 @@
 	{<span class="string">"read_input_registers"</span>,ctx_read_input_registers},
 	{<span class="string">"read_registers"</span>,	ctx_read_registers},
 	{<span class="string">"report_slave_id"</span>,	ctx_report_slave_id},
+	{<span class="string">"rtu_get_serial_mode"</span>,	ctx_rtu_get_serial_mode},
+	{<span class="string">"rtu_set_serial_mode"</span>,	ctx_rtu_set_serial_mode},
 	{<span class="string">"set_debug"</span>,		ctx_set_debug},
 	{<span class="string">"set_byte_timeout"</span>,	ctx_set_byte_timeout},
 	{<span class="string">"set_error_recovery"</span>,	ctx_set_error_recovery},
@@ -1254,7 +1345,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2018-06-14 11:58:15 </i>
+<i style="float:right;">Last updated 2020-07-07 13:24:53 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
