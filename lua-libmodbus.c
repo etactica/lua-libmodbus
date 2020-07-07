@@ -84,9 +84,11 @@ static int libmodbus_rc_to_nil_error(lua_State *L, int rc, int expected)
 }
 
 /**
- * Returns the runtime linked version of libmodbus as a string
+ * Returns the runtime linked version of libmodbus as a string.
+ * The compile time version is available as a constant VERSION.
  * @function version
  * @return eg "3.0.6"
+ * @see other_constants
  */
 static int libmodbus_version(lua_State *L)
 {
@@ -483,12 +485,11 @@ static int ctx_set_debug(lua_State *L)
 }
 
 /**
- * Set error recovery, see modbus_set_error_recovery
- * FIXME get autodocs for the defined constants
- * arguments will be or'd together
+ * Set error recovery, see modbus_set_error_recovery.
+ * The arguments will be or'd together.
  * @function ctx:set_error_recovery
- * @param a either ERROR_RECOVERY_NONE or ERROR_RECOVERY_LINK or ERROR_RECOVERY_PROTOCOL
- * @param b as a
+ * @param a one of @{error_recovery_constants}
+ * @param b one of @{error_recovery_constants}
  */
 static int ctx_set_error_recovery(lua_State *L)
 {
@@ -621,7 +622,7 @@ static int ctx_set_socket(lua_State *L)
 
 /**
  * @function ctx:rtu_get_serial_mode
- * @return the serial mode, either RTU_RS232 or RTU_RS485
+ * @return @{rtu_constants} the serial mode, either RTU_RS232 or RTU_RS485
  */
 static int ctx_rtu_get_serial_mode(lua_State *L)
 {
@@ -637,7 +638,7 @@ static int ctx_rtu_get_serial_mode(lua_State *L)
  * Remember, this is only required if your kernel is handling rs485 natively.
  * If you are using a USB adapter, you do NOT need this.
  * @function ctx:rtu_set_serial_mode
- * @param mode the selected serial mode, either RTU_RS232 or RTU_RS485.
+ * @param mode The selected serial mode from @{rtu_constants}, either RTU_RS232 or RTU_RS485.
  */
 static int ctx_rtu_set_serial_mode(lua_State *L)
 {
@@ -1116,6 +1117,42 @@ struct defines {
         const char* value;
 };
 
+/** Constants provided for use.
+ * Constants used in various functions, either as arguments or returns
+ * @section constants
+ */
+
+/**
+ * RTU Mode Constants
+ * @see rtu_get_serial_mode
+ * @see rtu_set_serial_mode
+ * @table rtu_constants
+ * @field RTU_RS232
+ * @field RTU_RS485
+ */
+
+/** Error Recovery Constants
+ * @see set_error_recovery
+ * @table error_recovery_constants
+ * @field ERROR_RECOVERY_NONE
+ * @field ERROR_RECOVERY_LINK
+ * @field ERROR_RECOVERY_PROTOCOL
+ */
+
+/** Exception codes
+ * These are all MODBUS_xxxx upstream in libmodbus.
+ * @table exception_codes
+ * @field EXCEPTION_ILLEGAL_FUNCTION
+ * @field EXCEPTION_ILLEGAL_DATA_ADDRESS
+ * @field EXCEPTION_ILLEGAL_DATA_VALUE
+ * @field EXCEPTION_SLAVE_OR_SERVER_FAILURE
+ * @field EXCEPTION_ACKNOWLEDGE
+ * @field EXCEPTION_SLAVE_OR_SERVER_BUSY
+ * @field EXCEPTION_NEGATIVE_ACKNOWLEDGE
+ * @field EXCEPTION_MEMORY_PARITY
+ * @field EXCEPTION_NOT_DEFINED
+ * @field EXCEPTION_GATEWAY_PATH
+ */
 static const struct definei D[] = {
         {"RTU_RS232", MODBUS_RTU_RS232},
         {"RTU_RS485", MODBUS_RTU_RS485},
@@ -1138,6 +1175,12 @@ static const struct definei D[] = {
         {NULL, 0}
 };
 
+/** Other constants
+ * @table other_constants
+ * @field VERSION_STRING the <em>compile time</em> version, see also @{version}
+ * @field BROADCAST_ADDRESS used in @{set_slave}
+ * @field TCP_SLAVE used in @{set_slave}
+ */
 static const struct defines S[] = {
 	{"VERSION_STRING", LIBMODBUS_VERSION_STRING},
         {NULL, NULL}
