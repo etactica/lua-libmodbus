@@ -7,5 +7,7 @@ file = {
 	"lua-libmodbus.c"
 }
 
+examples = { "demo.lua" }
+
 prettify_files = "show"
 

@@ -1,8 +1,12 @@
-/*** lua bindings to libmodbus
+/*** lua bindings to libmodbus.
+<p>Generally, this provides a very thin layer over libmodbus.  Instead of
+passing the context around to all your modbus_xxx functions, you simply
+call them as member functions on the context returned by the new() functions.
 
 @module libmodbus
 @author Karl Palsson <karlp@etactica.com> 2016-2020
 
+@license
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
   "Software"), to deal in the Software without restriction, including
