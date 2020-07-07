@@ -1,3 +1,6 @@
+0.6 2020 July
+add modbus_rtu_{set,get}_serial_mode
+
 0.5 2019 August
 Fix compilation under windows/mingw
 

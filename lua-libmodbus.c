@@ -621,7 +621,7 @@ static int ctx_set_socket(lua_State *L)
 
 /**
  * @function ctx:rtu_get_serial_mode
- * @return the serial mode
+ * @return the serial mode, either RTU_RS232 or RTU_RS485
  */
 static int ctx_rtu_get_serial_mode(lua_State *L)
 {
@@ -633,8 +633,11 @@ static int ctx_rtu_get_serial_mode(lua_State *L)
 }
 
 /**
+ * Sets the mode of a serial port.
+ * Remember, this is only required if your kernel is handling rs485 natively.
+ * If you are using a USB adapter, you do NOT need this.
  * @function ctx:rtu_set_serial_mode
- * @param mode the selected serial mode
+ * @param mode the selected serial mode, either RTU_RS232 or RTU_RS485.
  */
 static int ctx_rtu_set_serial_mode(lua_State *L)
 {
