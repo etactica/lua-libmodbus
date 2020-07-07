@@ -1,7 +1,7 @@
 /*** lua bindings to libmodbus
 
 @module libmodbus
-@author Karl Palsson <karlp@remake.is> 2016
+@author Karl Palsson <karlp@etactica.com> 2016-2020
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
