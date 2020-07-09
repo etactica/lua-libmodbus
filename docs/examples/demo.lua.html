@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>lua-libmodbus</h1>
+
+
+
+
+<h2>Examples</h2>
+<ul class="nowrap">
+  <li><strong>demo.lua</strong></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../index.html">libmodbus</a></li>
+</ul>
+<h2>Source</h2>
+<ul class="nowrap">
+  <li><a href="../source/lua-libmodbus.c.html">lua-libmodbus.c</a></li>
+  <li><strong>demo.lua</strong></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+    <h2>demo.lua</h2>
+<pre>
+<span class="comment">--[[
+Very simple demo of using client/master APIs
+Karl Palsson, April 2016
+--]]</span>
+
+mb = <span class="global">require</span>(<span class="string">"libmodbus"</span>)
+<span class="global">print</span>(<span class="string">"using libmodbus runtime version: "</span>, mb.version())
+<span class="global">print</span>(<span class="string">"using lua-libmodbus compiled against libmodbus: "</span>, mb.VERSION_STRING)
+
+<span class="keyword">local</span> dev = mb.new_tcp_pi(<span class="string">"localhost"</span>, <span class="number">1502</span>)
+<span class="global">print</span>(dev:get_byte_timeout())
+<span class="global">print</span>(dev:get_response_timeout())
+<span class="global">print</span>(dev)
+dev:set_debug()
+<span class="comment">--dev:set_error_recovery(mb.ERROR_RECOVERY_LINK, mb.ERROR_RECOVERY_PROTOCOL)
+</span><span class="comment">--dev:set_error_recovery(mb.ERROR_RECOVERY_NONE)
+</span>ok, err = dev:connect()
+<span class="keyword">if</span> <span class="keyword">not</span> ok <span class="keyword">then</span> <span class="global">error</span>(<span class="string">"Couldn't connect: "</span> .. err) <span class="keyword">end</span>
+
+<span class="keyword">function</span> lmb_unit_test(dev)
+	dev:set_slave(<span class="number">17</span>)
+	<span class="keyword">local</span> base_address = <span class="number">0x16b</span>
+	<span class="keyword">local</span> regs, err
+	regs, err = dev:read_registers(base_address, <span class="number">3</span>)
+	<span class="keyword">if</span> <span class="keyword">not</span> regs <span class="keyword">then</span> <span class="global">error</span>(<span class="string">"read failed: "</span> .. err) <span class="keyword">end</span>
+
+	<span class="global">print</span>(<span class="string">"read 3 from 0x16b: "</span>)
+	<span class="keyword">for</span> r,v <span class="keyword">in</span> <span class="global">ipairs</span>(regs) <span class="keyword">do</span>
+		<span class="global">print</span>(<span class="global">string</span>.format(<span class="string">"register (offset %d) %d: %d (%#x): %#x (%d)"</span>,
+			r, r, r + base_address - <span class="number">1</span>, r + base_address -<span class="number">1</span>, v, v))
+	<span class="keyword">end</span>
+
+	<span class="global">print</span>(<span class="string">"write single 0x16c -&gt; 0xabcd "</span>, dev:write_register(<span class="number">0x16c</span>, <span class="number">0xabcd</span>))
+	regs, err = dev:read_registers(<span class="number">0x16c</span>, <span class="number">1</span>)
+	<span class="keyword">if</span> <span class="keyword">not</span> regs <span class="keyword">then</span> <span class="global">error</span>(<span class="string">"read1 failed: "</span>, err) <span class="keyword">end</span>
+	<span class="global">print</span>(<span class="string">"reading back:  single 0x16c: "</span>, <span class="global">string</span>.format(<span class="string">"%x"</span>, regs[<span class="number">1</span>]))
+
+	regs, err = dev:read_input_registers(<span class="number">0x108</span>, <span class="number">1</span>)
+	<span class="keyword">if</span> <span class="keyword">not</span> regs <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"read input regs failed"</span>, err) <span class="keyword">end</span>
+	<span class="global">print</span>(<span class="string">"should be 0xa: "</span>, <span class="global">string</span>.format(<span class="string">"%x"</span>, regs[<span class="number">1</span>]))
+
+	bits, err = dev:read_bits(<span class="number">0x130</span>, <span class="number">0x25</span>)
+	<span class="keyword">if</span> <span class="keyword">not</span> bits <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"read bits failed"</span>, err) <span class="keyword">end</span>
+	<span class="keyword">for</span> r,v <span class="keyword">in</span> <span class="global">ipairs</span>(bits) <span class="keyword">do</span>
+		<span class="global">print</span>(<span class="global">string</span>.format(<span class="string">"bit (offset %d) %d: %d (%#x): %#x (%d)"</span>,
+			r, r, r + <span class="number">0x130</span> - <span class="number">1</span>, r + <span class="number">0x130</span> -<span class="number">1</span>, v, v))
+	<span class="keyword">end</span>
+
+	bits, err = dev:write_bits(<span class="number">0x130</span>, { <span class="number">0xffff</span>,<span class="number">0</span>, <span class="keyword">true</span>,<span class="number">0</span>,<span class="keyword">false</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">99</span> })
+	<span class="keyword">if</span> <span class="keyword">not</span> bits <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"write bits failed"</span>, err) <span class="keyword">end</span>
+	bits, err = dev:read_bits(<span class="number">0x130</span>, <span class="number">8</span>)
+	<span class="global">print</span>(<span class="string">"reading back 8 bits, should be 0xa5"</span>)
+	<span class="keyword">for</span> r,v <span class="keyword">in</span> <span class="global">ipairs</span>(bits) <span class="keyword">do</span>
+		<span class="global">print</span>(<span class="global">string</span>.format(<span class="string">"bit (offset %d) %d: %d (%#x): %#x (%d)"</span>,
+			r, r, r + <span class="number">0x130</span> - <span class="number">1</span>, r + <span class="number">0x130</span> -<span class="number">1</span>, v, v))
+	<span class="keyword">end</span>
+
+	err = dev:write_bit(<span class="number">0x131</span>, <span class="number">1</span>);
+	<span class="keyword">if</span> err <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"write bit returned:"</span>, err) <span class="keyword">end</span>
+	bits, err = dev:read_bits(<span class="number">0x131</span>, <span class="number">1</span>)
+	<span class="keyword">if</span> <span class="keyword">not</span> bits <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"re-reading bits failed"</span>, err) <span class="keyword">end</span>
+	<span class="global">print</span>(<span class="string">"rereading bits should be 1 now: "</span>, bits[<span class="number">1</span>])
+
+	bits, err = dev:read_input_bits(<span class="number">0x1c4</span>, <span class="number">8</span>)
+	<span class="keyword">if</span> <span class="keyword">not</span> bits <span class="keyword">then</span> <span class="global">print</span>(<span class="string">"read bits failed"</span>, err) <span class="keyword">end</span>
+	<span class="keyword">for</span> r,v <span class="keyword">in</span> <span class="global">ipairs</span>(bits) <span class="keyword">do</span>
+		<span class="global">print</span>(<span class="global">string</span>.format(<span class="string">"bit (offset %d) %d: %d (%#x): %#x (%d)"</span>,
+			r, r, r + <span class="number">0x1c4</span> - <span class="number">1</span>, r + <span class="number">0x1c4</span> -<span class="number">1</span>, v, v))
+	<span class="keyword">end</span>
+
+	report = dev:report_slave_id()
+	<span class="global">print</span>(<span class="string">"report slaveid: "</span>, report:byte(<span class="number">1</span>), report:byte(<span class="number">2</span>), report:sub(<span class="number">3</span>))
+
+<span class="keyword">end</span>
+
+
+<span class="keyword">function</span> write_test(dev)
+<span class="comment">-- will autoround 32.98 to 32.  no magic support for writing floats yet :|
+</span><span class="comment">-- numbers are cast to uint16_t internally.
+</span>	<span class="keyword">local</span> res, err = dev:write_registers(<span class="number">0x2000</span>, { <span class="number">0xabcd</span>, <span class="number">32.98</span>, <span class="number">0xfffe</span>, <span class="number">0xabcd</span>, -<span class="number">1</span> })
+	<span class="keyword">if</span> <span class="keyword">not</span> res <span class="keyword">then</span> <span class="global">print</span>(err) <span class="keyword">end</span>
+	regs, err = dev:read_registers(base_address, <span class="number">5</span>)
+	<span class="global">print</span>(<span class="string">"so, no magic casting 16bit tosigned!"</span>, regs[<span class="number">5</span>], -<span class="number">1</span>)
+
+	<span class="global">print</span>(dev:write_register(<span class="number">0x2006</span>, <span class="number">2</span>))
+<span class="keyword">end</span>
+
+lmb_unit_test(dev)</pre>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2020-07-09 09:32:01 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
