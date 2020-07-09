@@ -1,3 +1,6 @@
+0.6.1 2020 July
+No functional change: tag acrobatics for luarocks+releases at the same time
+
 0.6 2020 July
 add modbus_rtu_{set,get}_serial_mode
 
