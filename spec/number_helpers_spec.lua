@@ -55,6 +55,39 @@ describe("signed vs unsigned", function()
     end)
 end)
 
+describe("floating point should do sane things", function()
+	it("simple positive truncation", function()
+		local v = 5698.123
+		local h,l = mb.set_s32(v)
+		assert.are.equal(0, h)
+		assert.are.equal(0x1642, l)
+		assert.are.equal(5698, l)
+	end)
+	it("simple negative truncation", function()
+		local v = -5698.123
+		local h,l = mb.set_s32(v)
+		print("khell, ",v,  h, l)
+		assert.are.equal(0xffff, h)
+		assert.are.equal(0xe9be, l)
+		assert.are.equal(-5698, mb.get_s16(l))
+	end)
+	it("bracketed scaling", function()
+		local v = 5698.123
+		local scale = 1000
+		local h,l = mb.set_s32(v*scale)
+		assert.are.equal(0x56, h)
+		assert.are.equal(0xf24b, l)
+	end)
+	it("bracketed negative scaling", function()
+		local v = -5698.123
+		local scale = 1000
+		local h,l = mb.set_s32(v*scale)
+		print("khell with scale, ",v, scale, v*scale, h, l)
+		assert.are.equal(0xffa9, h)
+		assert.are.equal(0x0db5, l)
+	end)
+end)
+
 describe("regswap", function()
     it("should work normally", function()
         regs = {0x1122, 0x3344}
