@@ -8,7 +8,7 @@ end
 function nodescribe()
 end
 
-describe("signed vs unsigned", function()
+describe("get signed vs unsigned", function()
     it("should decode unsigned", function()
         regs = { 0x0020, 0x3456 }
         val = mb.get_s32(unpack(regs))
@@ -55,6 +55,21 @@ describe("signed vs unsigned", function()
     end)
 end)
 
+
+describe("set signed vs unsigned", function()
+	it("should set signed nicely", function()
+		local h,l = mb.set_s32(2110550)
+		assert.are.equal(0x0020, h)
+		assert.are.equal(0x3456, l)
+	end)
+	it("should set signed negative", function()
+		local h,l = mb.set_s32(-2110550)
+		-- different lua implementations treat literal hex differently.
+		assert.are.equal(mb.get_s16(0xffdf), mb.get_s16(h))
+		assert.are.equal(mb.get_s16(0xcbaa), mb.get_s16(l))
+	end)
+end)
+
 describe("floating point should do sane things", function()
 	it("simple positive truncation", function()
 		local v = 5698.123
@@ -66,9 +81,8 @@ describe("floating point should do sane things", function()
 	it("simple negative truncation", function()
 		local v = -5698.123
 		local h,l = mb.set_s32(v)
-		print("khell, ",v,  h, l)
-		assert.are.equal(0xffff, h)
-		assert.are.equal(0xe9be, l)
+		assert.are.equal(mb.get_s16(0xffff), mb.get_s16(h))
+		assert.are.equal(mb.get_s16(0xe9be), mb.get_s16(l))
 		assert.are.equal(-5698, mb.get_s16(l))
 	end)
 	it("bracketed scaling", function()
@@ -76,14 +90,13 @@ describe("floating point should do sane things", function()
 		local scale = 1000
 		local h,l = mb.set_s32(v*scale)
 		assert.are.equal(0x56, h)
-		assert.are.equal(0xf24b, l)
+		assert.are.equal(mb.get_s16(0xf24b), mb.get_s16(l))
 	end)
 	it("bracketed negative scaling", function()
 		local v = -5698.123
 		local scale = 1000
 		local h,l = mb.set_s32(v*scale)
-		print("khell with scale, ",v, scale, v*scale, h, l)
-		assert.are.equal(0xffa9, h)
+		assert.are.equal(mb.get_s16(0xffa9), mb.get_s16(h))
 		assert.are.equal(0x0db5, l)
 	end)
 end)
