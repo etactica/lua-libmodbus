@@ -1,3 +1,6 @@
+0.7 2021 February
+Fix helpers.set_s32 for "lnum" patch environments. #12
+
 0.6.1 2020 July
 No functional change: tag acrobatics for luarocks+releases at the same time
 
