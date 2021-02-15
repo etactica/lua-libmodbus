@@ -216,7 +216,9 @@ static int libmodbus_new_tcp_pi(lua_State *L)
 static int helper_set_s32(lua_State *L)
 {
 	/* truncate as necessary */
-	const uint32_t toval = (uint32_t)luaL_checknumber(L, 1);
+	//const uint32_t toval = (uint32_t)luaL_checknumber(L, 1);
+	lua_Number n = luaL_checknumber(L, 1);
+	int32_t toval = (int32_t)n;
 	lua_pushinteger(L, toval >> 16);
 	lua_pushinteger(L, toval & 0xffff);
 	return 2;
