@@ -923,7 +923,7 @@ static int ctx_write_bits(lua_State *L)
 
 /**
  * @function ctx:write_registers
- * @param address
+ * @param address base address to write to
  * @param value as a lua array table, or a sequence of values.
  * @usage either
  *  ctx:write_registers(0x2000, {1,2,3})
@@ -1035,6 +1035,11 @@ static int ctx_send_raw_request(lua_State *L)
 
 }
 
+/**
+ * @function ctx:tcp_pi_listen
+ * @param conns max connections to listen to, defaults to 1
+ * @return the new socket number or normal error
+ */
 static int ctx_tcp_pi_listen(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -1049,6 +1054,11 @@ static int ctx_tcp_pi_listen(lua_State *L)
 	return 1;
 }
 
+/**
+ * @function ctx:tcp_pi_accept
+ * @param sock the socket we're accepting on
+ * @return the new socket we've accepted or normal error
+ */
 static int ctx_tcp_pi_accept(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -1063,6 +1073,13 @@ static int ctx_tcp_pi_accept(lua_State *L)
 	return 1;
 }
 
+/**
+ * Receives a request from a remote.
+ * WARNING this might not be complete, documented that it exists
+ * @function ctx:receive
+ * @return the length of the data
+ * @return the data received
+ */
 static int ctx_receive(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -1098,6 +1115,13 @@ static int ctx_reply(lua_State *L)
 	return luaL_error(L, "reply is simply unimplemented my friend!");
 }
 
+/**
+ * Reply to a request with an Exception.
+ * @function ctx:reply_exception
+ * @param initial the initial request to build into an exception
+ * @param exc the exception code to use from @{exception_codes}
+ * @return the new socket number or normal error
+ */
 static int ctx_reply_exception(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
