@@ -65,6 +65,9 @@ typedef struct {
 	char parity;
 	int databits;
 	int stopbits;
+
+	/* used to prevent using tcp methods on a rtu context */
+	bool is_rtu;
 } ctx_t;
 
 /*
@@ -146,6 +149,7 @@ static int libmodbus_new_rtu(lua_State *L)
 
 	ctx->modbus = modbus_new_rtu(device, baud, parity, databits, stopbits);
 	ctx->max_len = MODBUS_RTU_MAX_ADU_LENGTH;
+	ctx->is_rtu = true;
 
 	if (ctx->modbus == NULL) {
 		return luaL_error(L, modbus_strerror(errno));
@@ -188,6 +192,7 @@ static int libmodbus_new_tcp_pi(lua_State *L)
 
 	ctx->modbus = modbus_new_tcp_pi(host, service);
 	ctx->max_len = MODBUS_TCP_MAX_ADU_LENGTH;
+	ctx->is_rtu = false;
 
 	if (ctx->modbus == NULL) {
 		return luaL_error(L, modbus_strerror(errno));
@@ -633,6 +638,9 @@ static int ctx_set_socket(lua_State *L)
 static int ctx_rtu_get_serial_mode(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
+	if (!ctx->is_rtu) {
+		return luaL_error(L, "Cannot call RTU methods on an TCP context");
+	}
 
 	lua_pushinteger(L, modbus_rtu_get_serial_mode(ctx->modbus));
 
@@ -649,6 +657,9 @@ static int ctx_rtu_get_serial_mode(lua_State *L)
 static int ctx_rtu_set_serial_mode(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
+	if (!ctx->is_rtu) {
+		return luaL_error(L, "Cannot call RTU methods on an TCP context");
+	}
 	int mode = luaL_checknumber(L, 2);
 
 	int rc = modbus_rtu_set_serial_mode(ctx->modbus, mode);
@@ -1043,6 +1054,9 @@ static int ctx_send_raw_request(lua_State *L)
 static int ctx_tcp_pi_listen(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
+	if (ctx->is_rtu) {
+		return luaL_error(L, "Cannot call TCP methods on an RTU context");
+	}
 	int conns = luaL_optinteger(L, 2, 1);
 
 	int sock = modbus_tcp_pi_listen(ctx->modbus, conns);
@@ -1062,6 +1076,9 @@ static int ctx_tcp_pi_listen(lua_State *L)
 static int ctx_tcp_pi_accept(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
+	if (ctx->is_rtu) {
+		return luaL_error(L, "Cannot call TCP methods on an RTU context");
+	}
 	int sock = luaL_checknumber(L, 2);
 
 	sock = modbus_tcp_pi_accept(ctx->modbus, &sock);
@@ -1282,7 +1299,6 @@ static const struct luaL_Reg ctx_M[] = {
 	{"__gc",		ctx_destroy},
 	{"__tostring",		ctx_tostring},
 	
-	// FIXME - should really add these funcs only to contexts with tcp_pi!
 	{"tcp_pi_listen",	ctx_tcp_pi_listen},
 	{"tcp_pi_accept",	ctx_tcp_pi_accept},
 
