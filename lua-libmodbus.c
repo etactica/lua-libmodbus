@@ -667,6 +667,79 @@ static int ctx_rtu_set_serial_mode(lua_State *L)
 	return libmodbus_rc_to_nil_error(L, rc, 0);
 }
 
+/**
+ * @function ctx:rtu_get_rts
+ * @return @{rtu_rts_constants} the RTS handling mode, up/down/none
+ */
+static int ctx_rtu_get_rts(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	if (!ctx->is_rtu) {
+		return luaL_error(L, "Cannot call RTU methods on an TCP context");
+	}
+
+	lua_pushinteger(L, modbus_rtu_get_rts(ctx->modbus));
+
+	return 1;
+}
+
+/**
+ * Sets the RTS handling of a serial port.
+ * @function ctx:rtu_set_rts
+ * @param mode The selected RTS handling mode from @{rtu_rts_constants}, up/down/none.
+ */
+static int ctx_rtu_set_rts(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	if (!ctx->is_rtu) {
+		return luaL_error(L, "Cannot call RTU methods on an TCP context");
+	}
+	int mode = luaL_checknumber(L, 2);
+
+	int rc = modbus_rtu_set_rts(ctx->modbus, mode);
+
+	return libmodbus_rc_to_nil_error(L, rc, 0);
+}
+
+/**
+ * @function ctx:rtu_get_rts_delay
+ * @return usecs
+ */
+static int ctx_rtu_get_rts_delay(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	if (!ctx->is_rtu) {
+		return luaL_error(L, "Cannot call RTU methods on an TCP context");
+	}
+
+	lua_pushinteger(L, modbus_rtu_get_rts_delay(ctx->modbus));
+
+	return 1;
+}
+
+/**
+ * Sets the RTS delay of a serial port.
+ * @function ctx:rtu_set_rts_delay
+ * @param usecs
+ */
+static int ctx_rtu_set_rts_delay(lua_State *L)
+{
+	ctx_t *ctx = ctx_check(L, 1);
+	if (!ctx->is_rtu) {
+		return luaL_error(L, "Cannot call RTU methods on an TCP context");
+	}
+	int usecs = luaL_checknumber(L, 2);
+
+	int rc = modbus_rtu_set_rts_delay(ctx->modbus, usecs);
+
+	return libmodbus_rc_to_nil_error(L, rc, 0);
+}
+
+/**
+ * Returns the header length of the transport
+ * @function ctx:get_header_length
+ * @return the length in bytes
+ */
 static int ctx_get_header_length(lua_State *L)
 {
 	ctx_t *ctx = ctx_check(L, 1);
@@ -1178,6 +1251,16 @@ struct defines {
  * @field RTU_RS485
  */
 
+/**
+ * RTU RTS Consants
+ * @see rtu_set_rts
+ * @see rtu_get_rts
+ * @table rtu_rts_constants
+ * @field RTU_RTS_NONE
+ * @field RTU_RTS_UP
+ * @field RTU_RTS_DOWN
+ */
+
 /** Error Recovery Constants
  * @see set_error_recovery
  * @table error_recovery_constants
@@ -1219,6 +1302,9 @@ static const struct definei D[] = {
 	{"EXCEPTION_NOT_DEFINED", MODBUS_EXCEPTION_NOT_DEFINED},
 	{"EXCEPTION_GATEWAY_PATH", MODBUS_EXCEPTION_GATEWAY_PATH},
 	{"EXCEPTION_GATEWAY_TARGET", MODBUS_EXCEPTION_GATEWAY_TARGET},
+	{"RTU_RTS_NONE", MODBUS_RTU_RTS_NONE},
+	{"RTU_RTS_UP", MODBUS_RTU_RTS_UP},
+	{"RTU_RTS_DOWN", MODBUS_RTU_RTS_DOWN},
         {NULL, 0}
 };
 
@@ -1283,8 +1369,6 @@ static const struct luaL_Reg ctx_M[] = {
 	{"read_input_registers",ctx_read_input_registers},
 	{"read_registers",	ctx_read_registers},
 	{"report_slave_id",	ctx_report_slave_id},
-	{"rtu_get_serial_mode",	ctx_rtu_get_serial_mode},
-	{"rtu_set_serial_mode",	ctx_rtu_set_serial_mode},
 	{"set_debug",		ctx_set_debug},
 	{"set_byte_timeout",	ctx_set_byte_timeout},
 	{"set_error_recovery",	ctx_set_error_recovery},
@@ -1301,6 +1385,13 @@ static const struct luaL_Reg ctx_M[] = {
 	
 	{"tcp_pi_listen",	ctx_tcp_pi_listen},
 	{"tcp_pi_accept",	ctx_tcp_pi_accept},
+
+	{"rtu_get_serial_mode",	ctx_rtu_get_serial_mode},
+	{"rtu_set_serial_mode",	ctx_rtu_set_serial_mode},
+	{"rtu_get_rts",		ctx_rtu_get_rts},
+	{"rtu_set_rts",		ctx_rtu_set_rts},
+	{"rtu_get_rts_delay",	ctx_rtu_get_rts_delay},
+	{"rtu_set_rts_delay",	ctx_rtu_set_rts_delay},
 
 	{"receive",		ctx_receive},
 	{"reply",		ctx_reply}, /* Totally busted */
