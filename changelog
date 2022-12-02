@@ -1,3 +1,7 @@
+0.8 2022 November
+Add modbus_rtu_{get,set}_rts
+Add modbus_rtu_{get,set}_rts_delay
+
 0.7 2021 February
 Fix helpers.set_s32 for "lnum" patch environments. #12
 
