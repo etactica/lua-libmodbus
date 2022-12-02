@@ -193,6 +193,26 @@ call them as member functions on the context returned by the new() functions.
 	<td class="summary">Sets the mode of a serial port.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#ctx:rtu_get_rts">ctx:rtu_get_rts ()</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:rtu_set_rts">ctx:rtu_set_rts (mode)</a></td>
+	<td class="summary">Sets the RTS handling of a serial port.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:rtu_get_rts_delay">ctx:rtu_get_rts_delay ()</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:rtu_set_rts_delay">ctx:rtu_set_rts_delay (usecs)</a></td>
+	<td class="summary">Sets the RTS delay of a serial port.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:get_header_length">ctx:get_header_length ()</a></td>
+	<td class="summary">Returns the header length of the transport</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#ctx:set_slave">ctx:set_slave (unitid)</a></td>
 	<td class="summary"></td>
 	</tr>
@@ -232,12 +252,32 @@ call them as member functions on the context returned by the new() functions.
 	<td class="name" nowrap><a href="#ctx:write_registers">ctx:write_registers (address, value)</a></td>
 	<td class="summary"></td>
 	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:tcp_pi_listen">ctx:tcp_pi_listen (conns)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:tcp_pi_accept">ctx:tcp_pi_accept (sock)</a></td>
+	<td class="summary"></td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:receive">ctx:receive ()</a></td>
+	<td class="summary">Receives a request from a remote.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ctx:reply_exception">ctx:reply_exception (initial, exc)</a></td>
+	<td class="summary">Reply to a request with an Exception.</td>
+	</tr>
 </table>
 <h2><a href="#Constants_provided_for_use">Constants provided for use </a></h2>
 <table class="function_list">
 	<tr>
 	<td class="name" nowrap><a href="#rtu_constants">rtu_constants</a></td>
 	<td class="summary">RTU Mode Constants</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#rtu_rts_constants">rtu_rts_constants</a></td>
+	<td class="summary">RTU RTS Consants</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#error_recovery_constants">error_recovery_constants</a></td>
@@ -264,7 +304,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "version"></a>
     <strong>version ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#80">line 80</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#83">line 83</a>
     </dt>
     <dd>
     Returns the runtime linked version of libmodbus as a string.
@@ -289,7 +329,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "new_rtu"></a>
     <strong>new_rtu (device, baud, parity, databits, stopbits)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#100">line 100</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#103">line 103</a>
     </dt>
     <dd>
     Create a Modbus/RTU context
@@ -327,7 +367,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "new_tcp_pi"></a>
     <strong>new_tcp_pi (host, service)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#164">line 164</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#168">line 168</a>
     </dt>
     <dd>
     Create a Modbus/TCP context
@@ -356,7 +396,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "set_s32"></a>
     <strong>set_s32 (num)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#199">line 199</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#204">line 204</a>
     </dt>
     <dd>
     Write a 32bit (u)int to 2x16bit registers
@@ -384,7 +424,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "set_f32"></a>
     <strong>set_f32 (num)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#214">line 214</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#221">line 221</a>
     </dt>
     <dd>
     Write a bit float to 2x16bit registers
@@ -412,7 +452,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "get_s16"></a>
     <strong>get_s16 (1)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#232">line 232</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#239">line 239</a>
     </dt>
     <dd>
     16bit register as number to signed 16bit
@@ -438,7 +478,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "get_s32"></a>
     <strong>get_s32 (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#246">line 246</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#253">line 253</a>
     </dt>
     <dd>
     2x16bit registers as number to signed 32 bit
@@ -467,7 +507,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "get_s32le"></a>
     <strong>get_s32le (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#262">line 262</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#269">line 269</a>
     </dt>
     <dd>
     2x16bit registers as number to signed 32 bit (reverse order)
@@ -496,7 +536,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "get_u32"></a>
     <strong>get_u32 (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#279">line 279</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#286">line 286</a>
     </dt>
     <dd>
     2x16bit registers as number to unsigned 32 bit
@@ -525,7 +565,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "get_u32le"></a>
     <strong>get_u32le (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#295">line 295</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#302">line 302</a>
     </dt>
     <dd>
     2x16bit registers as number to unsigned 32 bit (reversed order)
@@ -554,7 +594,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "get_f32"></a>
     <strong>get_f32 (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#311">line 311</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#318">line 318</a>
     </dt>
     <dd>
     2x16bit registers as number to 32 bit float
@@ -583,7 +623,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "get_f32le"></a>
     <strong>get_f32le (1, 2)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#331">line 331</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#338">line 338</a>
     </dt>
     <dd>
     2x16bit registers as number to 32 bit float (Reversed order)
@@ -612,7 +652,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "get_s64"></a>
     <strong>get_s64 (1, 2, 3, 4)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#353">line 353</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#360">line 360</a>
     </dt>
     <dd>
     4x16bit registers as number to signed 64 bit
@@ -647,7 +687,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "get_u64"></a>
     <strong>get_u64 (1, 2, 3, 4)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#376">line 376</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#383">line 383</a>
     </dt>
     <dd>
     4x16bit registers as number to unsigned 64 bit
@@ -690,7 +730,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:connect"></a>
     <strong>ctx:connect ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#434">line 434</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#441">line 441</a>
     </dt>
     <dd>
     Connect, see modbus_connect()
@@ -705,7 +745,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:close"></a>
     <strong>ctx:close ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#447">line 447</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#454">line 454</a>
     </dt>
     <dd>
     Close, see modbus_close()
@@ -720,7 +760,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:set_debug"></a>
     <strong>ctx:set_debug (enable)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#461">line 461</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#468">line 468</a>
     </dt>
     <dd>
     Set debug
@@ -741,7 +781,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:set_error_recovery"></a>
     <strong>ctx:set_error_recovery (a, b)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#481">line 481</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#488">line 488</a>
     </dt>
     <dd>
     Set error recovery, see modbus_set_error_recovery.
@@ -766,7 +806,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:set_byte_timeout"></a>
     <strong>ctx:set_byte_timeout (seconds, microseconds)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#498">line 498</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#505">line 505</a>
     </dt>
     <dd>
     See also modbus_set_byte_timeout
@@ -790,7 +830,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:get_byte_timeout"></a>
     <strong>ctx:get_byte_timeout ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#516">line 516</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#523">line 523</a>
     </dt>
     <dd>
 
@@ -812,7 +852,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:set_response_timeout"></a>
     <strong>ctx:set_response_timeout (seconds, microseconds)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#537">line 537</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#544">line 544</a>
     </dt>
     <dd>
 
@@ -836,7 +876,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:get_response_timeout"></a>
     <strong>ctx:get_response_timeout ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#555">line 555</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#562">line 562</a>
     </dt>
     <dd>
 
@@ -858,7 +898,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:get_socket"></a>
     <strong>ctx:get_socket ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#575">line 575</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#582">line 582</a>
     </dt>
     <dd>
 
@@ -878,7 +918,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:set_socket"></a>
     <strong>ctx:set_socket (sock)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#588">line 588</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#595">line 595</a>
     </dt>
     <dd>
 
@@ -899,7 +939,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:rtu_get_serial_mode"></a>
     <strong>ctx:rtu_get_serial_mode ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#602">line 602</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#609">line 609</a>
     </dt>
     <dd>
 
@@ -919,7 +959,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:rtu_set_serial_mode"></a>
     <strong>ctx:rtu_set_serial_mode (mode)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#618">line 618</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#628">line 628</a>
     </dt>
     <dd>
     Sets the mode of a serial port.
@@ -940,9 +980,111 @@ call them as member functions on the context returned by the new() functions.
 
 </dd>
     <dt>
+    <a name = "ctx:rtu_get_rts"></a>
+    <strong>ctx:rtu_get_rts ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#645">line 645</a>
+    </dt>
+    <dd>
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        <a href="index.html#rtu_rts_constants">rtu_rts_constants</a> the RTS handling mode, up/down/none
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:rtu_set_rts"></a>
+    <strong>ctx:rtu_set_rts (mode)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#662">line 662</a>
+    </dt>
+    <dd>
+    Sets the RTS handling of a serial port.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mode</span>
+         The selected RTS handling mode from <a href="index.html#rtu_rts_constants">rtu_rts_constants</a>, up/down/none.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:rtu_get_rts_delay"></a>
+    <strong>ctx:rtu_get_rts_delay ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#679">line 679</a>
+    </dt>
+    <dd>
+
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        usecs
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:rtu_set_rts_delay"></a>
+    <strong>ctx:rtu_set_rts_delay (usecs)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#696">line 696</a>
+    </dt>
+    <dd>
+    Sets the RTS delay of a serial port.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">usecs</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:get_header_length"></a>
+    <strong>ctx:get_header_length ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#714">line 714</a>
+    </dt>
+    <dd>
+    Returns the header length of the transport
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the length in bytes
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "ctx:set_slave"></a>
     <strong>ctx:set_slave (unitid)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#641">line 641</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#727">line 727</a>
     </dt>
     <dd>
 
@@ -963,7 +1105,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:read_input_bits"></a>
     <strong>ctx:read_input_bits (address, count)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#695">line 695</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#781">line 781</a>
     </dt>
     <dd>
 
@@ -992,7 +1134,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:read_bits"></a>
     <strong>ctx:read_bits (address, count)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#706">line 706</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#792">line 792</a>
     </dt>
     <dd>
 
@@ -1021,7 +1163,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:read_input_registers"></a>
     <strong>ctx:read_input_registers (address, count)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#754">line 754</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#840">line 840</a>
     </dt>
     <dd>
 
@@ -1050,7 +1192,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:read_registers"></a>
     <strong>ctx:read_registers (address, count)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#765">line 765</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#851">line 851</a>
     </dt>
     <dd>
 
@@ -1079,7 +1221,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:report_slave_id"></a>
     <strong>ctx:report_slave_id ()</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#774">line 774</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#860">line 860</a>
     </dt>
     <dd>
 
@@ -1099,7 +1241,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:write_bit"></a>
     <strong>ctx:write_bit (address, value)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#795">line 795</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#881">line 881</a>
     </dt>
     <dd>
 
@@ -1123,7 +1265,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:write_register"></a>
     <strong>ctx:write_register (address, value)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#819">line 819</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#905">line 905</a>
     </dt>
     <dd>
 
@@ -1147,7 +1289,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:write_bits"></a>
     <strong>ctx:write_bits (address, value)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#836">line 836</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#922">line 922</a>
     </dt>
     <dd>
 
@@ -1171,7 +1313,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "ctx:write_registers"></a>
     <strong>ctx:write_registers (address, value)</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#898">line 898</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#984">line 984</a>
     </dt>
     <dd>
 
@@ -1180,7 +1322,7 @@ call them as member functions on the context returned by the new() functions.
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">address</span>
-
+         base address to write to
         </li>
         <li><span class="parameter">value</span>
          as a lua array table, or a sequence of values.
@@ -1198,6 +1340,110 @@ call them as member functions on the context returned by the new() functions.
     </ul>
 
 </dd>
+    <dt>
+    <a name = "ctx:tcp_pi_listen"></a>
+    <strong>ctx:tcp_pi_listen (conns)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#1095">line 1095</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">conns</span>
+         max connections to listen to, defaults to 1
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the new socket number or normal error
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:tcp_pi_accept"></a>
+    <strong>ctx:tcp_pi_accept (sock)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#1117">line 1117</a>
+    </dt>
+    <dd>
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">sock</span>
+         the socket we're accepting on
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the new socket we've accepted or normal error
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:receive"></a>
+    <strong>ctx:receive ()</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#1141">line 1141</a>
+    </dt>
+    <dd>
+    Receives a request from a remote.
+ WARNING this might not be complete, documented that it exists
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        the length of the data</li>
+        <li>
+        the data received</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ctx:reply_exception"></a>
+    <strong>ctx:reply_exception (initial, exc)</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#1183">line 1183</a>
+    </dt>
+    <dd>
+    Reply to a request with an Exception.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">initial</span>
+         the initial request to build into an exception
+        </li>
+        <li><span class="parameter">exc</span>
+         the exception code to use from <a href="index.html#exception_codes">exception_codes</a>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        the new socket number or normal error
+    </ol>
+
+
+
+
+</dd>
 </dl>
     <h2 class="section-header has-description"><a name="Constants_provided_for_use"></a>Constants provided for use </h2>
 
@@ -1209,7 +1455,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "rtu_constants"></a>
     <strong>rtu_constants</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#1112">line 1112</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#1230">line 1230</a>
     </dt>
     <dd>
     RTU Mode Constants
@@ -1236,9 +1482,41 @@ call them as member functions on the context returned by the new() functions.
 
 </dd>
     <dt>
+    <a name = "rtu_rts_constants"></a>
+    <strong>rtu_rts_constants</strong>
+    <a style="float:right;" href="source/libmodbus.lua.html#1238">line 1238</a>
+    </dt>
+    <dd>
+    RTU RTS Consants
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">RTU_RTS_NONE</span>
+
+        </li>
+        <li><span class="parameter">RTU_RTS_UP</span>
+
+        </li>
+        <li><span class="parameter">RTU_RTS_DOWN</span>
+
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <li><a href="index.html#ctx:rtu_set_rts">rtu_set_rts</a></li>
+         <li><a href="index.html#ctx:rtu_get_rts">rtu_get_rts</a></li>
+    </ul>
+
+
+</dd>
+    <dt>
     <a name = "error_recovery_constants"></a>
     <strong>error_recovery_constants</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#1127">line 1127</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#1253">line 1253</a>
     </dt>
     <dd>
     Error Recovery Constants
@@ -1269,7 +1547,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "exception_codes"></a>
     <strong>exception_codes</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#1128">line 1128</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#1254">line 1254</a>
     </dt>
     <dd>
     Exception codes
@@ -1318,7 +1596,7 @@ call them as member functions on the context returned by the new() functions.
     <dt>
     <a name = "other_constants"></a>
     <strong>other_constants</strong>
-    <a style="float:right;" href="source/libmodbus.lua.html#1156">line 1156</a>
+    <a style="float:right;" href="source/libmodbus.lua.html#1285">line 1285</a>
     </dt>
     <dd>
     Other constants
@@ -1349,7 +1627,7 @@ call them as member functions on the context returned by the new() functions.
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2020-07-09 09:32:01 </i>
+<i style="float:right;">Last updated 2022-12-02 11:44:08 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
